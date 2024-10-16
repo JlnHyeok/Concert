@@ -1,0 +1,24 @@
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { PerformanceDate } from './performance-date.entity';
+import { Seat } from './seat.entity';
+
+@Entity()
+export class Concert {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  location: string;
+
+  @OneToMany(() => Seat, (seat) => seat.concert)
+  seats: Seat[];
+
+  @OneToMany(
+    () => PerformanceDate,
+    (performanceDate) => performanceDate.concert,
+  )
+  performanceDates: PerformanceDate[];
+}
