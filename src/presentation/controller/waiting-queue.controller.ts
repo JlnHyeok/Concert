@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Headers,
   HttpStatus,
+  InternalServerErrorException,
   Post,
   Res,
 } from '@nestjs/common';
@@ -23,6 +25,9 @@ export class WaitingQueueController {
   async checkWaitingQueue(
     @Headers('authorization') token: string,
   ): Promise<CheckWaitingQueueResponseDto> {
+    if (!token) {
+      throw new BadRequestException('Token is missing');
+    }
     token = token.split(' ')[1];
     return await this.waitingQueueService.checkWaitingQueue(token);
   }
@@ -31,11 +36,17 @@ export class WaitingQueueController {
   @ApiResponse({ status: 201, description: 'Token issued successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async issueToken(@Res() res: Response) {
-    const token = await this.waitingQueueService.generateToken();
-
-    res
-      .status(HttpStatus.CREATED)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ message: 'Token issued successfully' });
+    try {
+      const token = await this.waitingQueueService.generateToken();
+      if (!token) {
+        throw new BadRequestException('Token issuance failed');
+      }
+      res
+        .status(HttpStatus.CREATED)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ message: 'Token issued successfully' });
+    } catch (error) {
+      throw new InternalServerErrorException('Token generation failed');
+    }
   }
 }
