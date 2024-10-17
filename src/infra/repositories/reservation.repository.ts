@@ -8,8 +8,22 @@ export class ReservationRepository
   extends Repository<Reservation>
   implements IReservationRepository
 {
-  async createReservation(reservation: Reservation): Promise<Reservation> {
-    return await this.save(reservation);
+  async findById(id: number): Promise<Reservation> {
+    return await this.findOne({
+      where: { id },
+    });
+  }
+  async findByUserId(userId: number): Promise<Reservation[]> {
+    return await this.find({
+      where: { id: userId },
+    });
+  }
+  async createReservation(
+    userId: number,
+    seatId: number,
+    createdAt: Date,
+  ): Promise<Reservation> {
+    return await this.save({ userId, seatId, createdAt });
   }
 
   async deleteReservation(id: number): Promise<void> {

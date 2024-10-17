@@ -8,7 +8,11 @@ export class PaymentRepository
   extends Repository<Payment>
   implements IPaymentRepository
 {
-  async createPayment(payment: Payment): Promise<Payment> {
-    return await this.save(payment);
+  async createPayment(
+    reservationId: number,
+    price: number,
+    createdAt: Date,
+  ): Promise<Payment> {
+    return await this.save({ reservationId, price, createdAt });
   }
 }
