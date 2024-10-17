@@ -14,6 +14,7 @@ import {
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
 import { NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { ConcertService } from './consert.service';
 
 describe('ConcertService', () => {
@@ -21,6 +22,7 @@ describe('ConcertService', () => {
   let concertRepository: IConcertRepository;
   let seatRepository: ISeatRepository;
   let performanceDateRepository: IPerformanceDateRepository;
+  let dataSource: DataSource;
 
   const mockSeat: Seat = {
     id: 1,
@@ -61,6 +63,12 @@ describe('ConcertService', () => {
     deletePerformanceDate: jest.fn().mockResolvedValue(null),
   };
 
+  const mockDataSource = {
+    transaction: jest.fn().mockImplementation(async (callback) => {
+      return await callback(mockDataSource); // Mock the transaction callback
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -77,6 +85,10 @@ describe('ConcertService', () => {
           provide: PERFORMANCE_DATE_REPOSITORY,
           useValue: mockPerformanceDateRepository,
         },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
       ],
     }).compile();
 
@@ -86,12 +98,7 @@ describe('ConcertService', () => {
     performanceDateRepository = module.get<IPerformanceDateRepository>(
       PERFORMANCE_DATE_REPOSITORY,
     );
-
-    jest.mock('dayjs', () => {
-      return jest.fn(() => ({
-        toDate: jest.fn().mockReturnValue(new Date('2024-10-18')),
-      }));
-    });
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   describe('getSeat', () => {
@@ -121,6 +128,7 @@ describe('ConcertService', () => {
       expect(seatRepository.findByConcertAndDate).toHaveBeenCalledWith(
         1,
         expect.any(Date),
+        mockDataSource, // Check the passed manager (transaction)
       );
     });
 
@@ -161,7 +169,11 @@ describe('ConcertService', () => {
 
       const updatedSeat = await service.updateSeat(1, mockSeat);
       expect(updatedSeat).toEqual(mockSeat);
-      expect(seatRepository.updateSeat).toHaveBeenCalledWith(1, mockSeat);
+      expect(seatRepository.updateSeat).toHaveBeenCalledWith(
+        1,
+        mockSeat,
+        mockDataSource,
+      ); // Check the passed manager (transaction)
     });
 
     it('should throw NotFoundException if seat not found for update', async () => {

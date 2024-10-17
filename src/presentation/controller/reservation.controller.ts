@@ -1,5 +1,11 @@
-import { Controller, Headers, Param, Post } from '@nestjs/common';
-import { ReservationFacade } from 'src/application/facades/reservation.facade';
+import {
+  Controller,
+  Headers,
+  Param,
+  Post,
+  BadRequestException,
+} from '@nestjs/common';
+import { ReservationFacade } from '../../application/facades/reservation.facade';
 import {
   PaymentReservationRequestDto,
   ReservationSeatRequestDto,
@@ -23,6 +29,16 @@ export class ReservationController {
     @Param() params: ReservationSeatRequestDto,
   ): Promise<ReservationResponseDto> {
     const { userId, concertId, performanceDate, seatNumber } = params;
+
+    // 유효성 검사 추가
+    if (!token) {
+      throw new BadRequestException('Missing authorization token');
+    }
+
+    if (!userId || !concertId || !performanceDate || !seatNumber) {
+      throw new BadRequestException('Missing required parameters');
+    }
+
     return await this.reservationFacade.createReservation({
       token,
       userId,
@@ -40,6 +56,16 @@ export class ReservationController {
     @Param() params: PaymentReservationRequestDto,
   ): Promise<PaymentResponseDto> {
     const { userId, seatId } = params;
+
+    // 유효성 검사 추가
+    if (!token) {
+      throw new BadRequestException('Missing authorization token');
+    }
+
+    if (!userId || !seatId) {
+      throw new BadRequestException('Missing required parameters');
+    }
+
     return await this.reservationFacade.createPayment(token, userId, seatId);
   }
 }

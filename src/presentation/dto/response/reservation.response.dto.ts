@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDate, IsNotEmpty, IsNumber } from 'class-validator';
-import { Seat } from 'src/domain/concert/model/entity/seat.entity';
-import { Reservation } from 'src/domain/reservation/model/entity/reservation.entity';
-import { User } from 'src/domain/user/model/entity/user.entity';
+import { Seat } from '../../../domain/concert/model/entity/seat.entity';
+import { Reservation } from '../../../domain/reservation/model/entity/reservation.entity';
+import { User } from '../../../domain/user/model/entity/user.entity';
 
 export class ReservationResponseDto {
   @ApiProperty({ description: '예약 ID' })

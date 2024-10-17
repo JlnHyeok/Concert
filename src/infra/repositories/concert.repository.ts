@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Concert } from 'src/domain/concert/model/entity/concert.entity';
-import { IConcertRepository } from 'src/domain/concert/model/repository/concert.repository';
+import { Concert } from '../../domain/concert/model/entity/concert.entity';
+import { IConcertRepository } from '../../domain/concert/model/repository/concert.repository';
 import { Repository } from 'typeorm';
 
 @Injectable()
