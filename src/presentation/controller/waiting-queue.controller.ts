@@ -8,19 +8,28 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { WaitingQueueService } from 'src/domain/waiting-queue/services/waiting-queue.service';
+import { CheckWaitingQueueResponseDto } from '../dto/response/waiting-queue.response.dto';
+import { WaitingQueueService } from '../../domain/waiting-queue/services/waiting-queue.service';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('waiting-queue')
 @Controller('waiting-queue')
 export class WaitingQueueController {
   constructor(private readonly waitingQueueService: WaitingQueueService) {}
 
   @Get('check')
-  async checkWaitingQueue(@Headers('authorization') token: string) {
+  @ApiResponse({ status: 200, type: CheckWaitingQueueResponseDto })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async checkWaitingQueue(
+    @Headers('authorization') token: string,
+  ): Promise<CheckWaitingQueueResponseDto> {
     token = token.split(' ')[1];
     return await this.waitingQueueService.checkWaitingQueue(token);
   }
 
   @Post('issue')
+  @ApiResponse({ status: 201, description: 'Token issued successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
   async issueToken(@Res() res: Response) {
     const token = await this.waitingQueueService.generateToken();
 
