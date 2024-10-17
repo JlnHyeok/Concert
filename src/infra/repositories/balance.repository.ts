@@ -10,7 +10,7 @@ export class BalanceRepository
 {
   async findByUserId(id: number): Promise<Balance> {
     return await this.findOne({
-      where: { user_id: id },
+      where: { userId: id },
     });
   }
   async createBalance(balance: Balance): Promise<Balance> {
