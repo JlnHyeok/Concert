@@ -14,7 +14,7 @@ export class PerformanceDateRepository
 
   async findByConcertId(concertId: number): Promise<PerformanceDate[] | null> {
     return await this.find({
-      where: { concert_id: concertId },
+      where: { concertId },
     });
   }
 

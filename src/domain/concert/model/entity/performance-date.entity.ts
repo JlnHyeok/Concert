@@ -14,10 +14,10 @@ export class PerformanceDate {
   id: number;
 
   @Column()
-  concert_id: number;
+  concertId: number;
 
   @Column()
-  performance_date: Date;
+  performanceDate: Date;
 
   @ManyToOne(() => Concert, (concert) => concert.performanceDates)
   concert: Concert;

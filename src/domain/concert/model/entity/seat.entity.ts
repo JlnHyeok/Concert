@@ -8,23 +8,24 @@ export class Seat {
   id: number;
 
   @Column()
-  concert_id: number;
+  concertId: number;
+
+  @ManyToOne(() => PerformanceDate, (performanceDate) => performanceDate.seats)
+  @Column()
+  performanceDate: Date;
 
   @Column()
-  performance_date: string;
-
-  @Column()
-  seatNumber: string;
+  seatNumber: number;
 
   @Column()
   status: 'AVAILABLE' | 'RESERVED' | 'HOLD';
+
+  @Column()
+  releaseAt: Date;
 
   @Column({ type: 'decimal' })
   price: number;
 
   @ManyToOne(() => Concert, (concert) => concert.seats)
   concert: Concert;
-
-  @ManyToOne(() => PerformanceDate, (performanceDate) => performanceDate.seats)
-  performanceDate: PerformanceDate;
 }

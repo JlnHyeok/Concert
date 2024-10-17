@@ -8,18 +8,24 @@ export class SeatRepository
   extends Repository<Seat>
   implements ISeatRepository
 {
+  async findById(id: number): Promise<Seat> {
+    return await this.findOne({
+      where: { id },
+    });
+  }
+
   async findAll(): Promise<Seat[]> {
-    return await this.find();
+    return await this.findAll();
   }
 
   async findByConcertAndDate(
     concertId: number,
-    concertDate: string,
-  ): Promise<Seat | null> {
-    return await this.findOne({
+    concertDate: Date,
+  ): Promise<Seat[] | null> {
+    return await this.find({
       where: {
-        concert_id: concertId,
-        performance_date: concertDate,
+        concertId,
+        performanceDate: concertDate,
       },
     });
   }
@@ -28,12 +34,9 @@ export class SeatRepository
     return await this.save(seat);
   }
 
-  async updateSeat(
-    concertId: number,
-    performanceDate: string,
-    updateSeat: Seat,
-  ): Promise<Seat> {
-    const seat = await this.findByConcertAndDate(concertId, performanceDate);
+  async updateSeat(seatId: number, updateSeat: Seat): Promise<Seat> {
+    console.log(seatId);
+    const seat = await this.findById(seatId);
 
     if (!seat) {
       return null;
