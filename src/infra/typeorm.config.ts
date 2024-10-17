@@ -1,6 +1,13 @@
 // src/infra/typeorm.config.ts
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { Concert } from 'src/domain/concert/model/entity/concert.entity';
+import { PerformanceDate } from 'src/domain/concert/model/entity/performance-date.entity';
+import { Seat } from 'src/domain/concert/model/entity/seat.entity';
+import { Payment } from 'src/domain/reservation/model/entity/payment.entity';
+import { Reservation } from 'src/domain/reservation/model/entity/reservation.entity';
+import { User } from 'src/domain/user/model/entity/user.entity';
+import { WaitingQueue } from 'src/domain/waiting-queue/model/entity/waiting-queue.entity';
 import { DataSource } from 'typeorm';
 
 // NestJs 내부 서비스에서 데이터베이스를 사용하기 위한 설정.
@@ -15,7 +22,15 @@ export const typeOrmConfigFactory = async (
   username: configService.get<string>('DB_USERNAME', 'postgres'),
   password: configService.get<string>('DB_PASSWORD', 'postgres'),
   database: configService.get<string>('DB_NAME', 'concert'),
-  entities: [],
+  entities: [
+    User,
+    WaitingQueue,
+    Seat,
+    Payment,
+    Reservation,
+    Concert,
+    PerformanceDate,
+  ],
   synchronize: configService.get<boolean>('DB_SYNC', false), // 운영 환경에선 false로 설정
   logging: configService.get<boolean>('DB_LOGGING', true),
 });
@@ -30,7 +45,15 @@ export const dataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'concert',
-  entities: [],
+  entities: [
+    User,
+    WaitingQueue,
+    Seat,
+    Payment,
+    Reservation,
+    Concert,
+    PerformanceDate,
+  ],
   synchronize: process.env.DB_SYNC === 'false',
   logging: process.env.DB_LOGGING === 'true',
 });
