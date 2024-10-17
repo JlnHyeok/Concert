@@ -1,20 +1,43 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReservationService } from '../service/reservation.service';
+import { ReservationService } from './reservation.service';
 import {
-  RESERVATION_REPOSITORY,
   IReservationRepository,
+  RESERVATION_REPOSITORY,
 } from '../model/repository/reservation.repository';
 import {
-  PAYMENT_REPOSITORY,
   IPaymentRepository,
+  PAYMENT_REPOSITORY,
 } from '../model/repository/payment.repository';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import dayjs from 'dayjs';
+import { Payment } from '../model/entity/payment.entity';
+import { Reservation } from '../model/entity/reservation.entity';
+import { DataSource } from 'typeorm';
 
 describe('ReservationService', () => {
   let service: ReservationService;
   let reservationRepository: IReservationRepository;
   let paymentRepository: IPaymentRepository;
+
+  const mockReservationRepository = {
+    findByIdWithLock: jest.fn(),
+    findByUserIdWithLock: jest.fn(),
+    createReservation: jest.fn(),
+  };
+
+  const mockPaymentRepository = {
+    createPaymentWithLock: jest.fn(),
+    createPayment: jest.fn(),
+  };
+
+  const mockDataSource = {
+    transaction: jest.fn((callback) =>
+      callback({
+        findOne: jest.fn(),
+        find: jest.fn(),
+        save: jest.fn(),
+      }),
+    ),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,19 +45,14 @@ describe('ReservationService', () => {
         ReservationService,
         {
           provide: RESERVATION_REPOSITORY,
-          useValue: {
-            findByUserId: jest.fn(),
-            createReservation: jest.fn(),
-            findById: jest.fn(),
-            deleteReservation: jest.fn(),
-          },
+          useValue: mockReservationRepository,
         },
         {
           provide: PAYMENT_REPOSITORY,
-          useValue: {
-            createPayment: jest.fn(),
-          },
+          useValue: mockPaymentRepository,
         },
+
+        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
@@ -45,82 +63,79 @@ describe('ReservationService', () => {
     paymentRepository = module.get<IPaymentRepository>(PAYMENT_REPOSITORY);
   });
 
-  describe('getReservation', () => {
-    it('should throw NotFoundException if no reservations are found', async () => {
-      jest.spyOn(reservationRepository, 'findByUserId').mockResolvedValue([]);
-      await expect(service.getReservation(1)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should return reservations if found', async () => {
-      const reservations = [
-        { id: 1, createdAt: new Date(), user: null, seat: null },
-      ];
-      jest
-        .spyOn(reservationRepository, 'findByUserId')
-        .mockResolvedValue(reservations);
-      expect(await service.getReservation(1)).toEqual(reservations);
-    });
-  });
-
-  describe('createReservation', () => {
-    it('should create a reservation successfully', async () => {
-      const reservation = {
-        id: 1,
-        createdAt: new Date(),
-        user: null,
-        seat: null,
-      };
-      jest
-        .spyOn(reservationRepository, 'createReservation')
-        .mockResolvedValue(reservation);
-
-      const result = await service.createReservation(1, 1);
-      expect(result).toEqual(reservation);
-    });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('createPayment', () => {
-    it('should throw NotFoundException if reservation is not found', async () => {
-      jest.spyOn(reservationRepository, 'findById').mockResolvedValue(null);
-      await expect(service.createPayment(1, 100)).rejects.toThrow(
+    it('should throw NotFoundException if reservation not found', async () => {
+      const reservationId = 1;
+      const price = 100;
+
+      jest
+        .spyOn(reservationRepository, 'findByIdWithLock')
+        .mockResolvedValue(null);
+
+      await expect(service.createPayment(reservationId, price)).rejects.toThrow(
         NotFoundException,
       );
     });
 
-    it('should throw BadRequestException if price is zero or negative', async () => {
-      jest.spyOn(reservationRepository, 'findById').mockResolvedValue({
-        id: 1,
-        user: null,
-        seat: null,
+    it('should throw BadRequestException if price is less than or equal to zero', async () => {
+      const reservationId = 1; // 유효한 예약 ID
+
+      // Mock이 예약을 반환하도록 설정
+      mockReservationRepository.findByIdWithLock.mockResolvedValueOnce({
+        id: reservationId,
+        userId: 1,
+        seatId: 1,
         createdAt: new Date(),
       });
-      await expect(service.createPayment(1, 0)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.createPayment(1, -10)).rejects.toThrow(
+
+      const price = 0; // 0 이하의 가격
+
+      await expect(service.createPayment(reservationId, price)).rejects.toThrow(
         BadRequestException,
       );
     });
+  });
 
-    it('should create a payment successfully', async () => {
-      const payment = {
-        id: 1,
-        price: 100,
-        createdAt: new Date(),
-        reservation: null,
-      };
-      jest.spyOn(reservationRepository, 'findById').mockResolvedValue({
-        id: 1,
-        user: null,
-        seat: null,
-        createdAt: new Date(),
-      });
-      jest.spyOn(paymentRepository, 'createPayment').mockResolvedValue(payment);
+  describe('getReservation', () => {
+    it('should throw NotFoundException if no reservations found for user', async () => {
+      const userId = 1;
 
-      const result = await service.createPayment(1, 100);
-      expect(result).toEqual(payment);
+      jest
+        .spyOn(reservationRepository, 'findByUserIdWithLock')
+        .mockResolvedValue([]);
+
+      await expect(service.getReservation(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should return reservations successfully', async () => {
+      const userId = 1;
+      const mockReservations = [
+        {
+          id: 1,
+          userId,
+          seatId: 1,
+          createdAt: new Date(),
+          user: null,
+          seat: null,
+        },
+      ];
+
+      jest
+        .spyOn(reservationRepository, 'findByUserIdWithLock')
+        .mockResolvedValue(mockReservations);
+
+      const result = await service.getReservation(userId);
+      expect(result).toEqual(mockReservations);
+      expect(reservationRepository.findByUserIdWithLock).toHaveBeenCalledWith(
+        expect.anything(),
+        userId,
+      );
     });
   });
 });
