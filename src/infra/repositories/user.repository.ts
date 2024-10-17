@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { User } from 'src/domain/user/model/entity/user.entity';
 import { IUserRepository } from 'src/domain/user/model/repository/user.repository';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserRepository
@@ -18,15 +18,19 @@ export class UserRepository
     return await this.save(user);
   }
 
-  async updateUser(id: number, user: User): Promise<User> {
+  async updateUser(
+    id: number,
+    user: User,
+    manager: EntityManager,
+  ): Promise<User> {
     const oldUser = await this.findById(id);
 
-    if (!user) {
+    if (!oldUser) {
       return null;
     }
 
     Object.assign(oldUser, user);
-    return await this.save(user);
+    return await manager.save(oldUser); // Use manager for transaction context
   }
 
   async deleteUser(id: number): Promise<void> {

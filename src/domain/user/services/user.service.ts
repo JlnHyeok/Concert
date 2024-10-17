@@ -13,6 +13,7 @@ import {
   IBalanceRepository,
 } from '../model/repository/balance.repository';
 import { User } from '../model/entity/user.entity';
+import { DataSource, EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -22,52 +23,71 @@ export class UserService {
 
     @Inject(BALANCE_REPOSITORY)
     private readonly balanceRepository: IBalanceRepository,
+
+    private readonly dataSource: DataSource, // Inject DataSource for transactions
   ) {}
 
   async chargePoint(
     userId: number,
     point: number,
   ): Promise<{ balance: number }> {
-    const balance = await this.balanceRepository.findByUserId(userId);
-    if (!balance) throw new NotFoundException('Balance not found');
+    const manager = this.dataSource.createEntityManager();
 
-    balance.balance += point;
+    await manager.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        const balance = await this.balanceRepository.findByUserId(userId);
+        if (!balance) throw new NotFoundException('Balance not found');
 
-    try {
-      await this.balanceRepository.updateBalance(balance);
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to update balance');
-    }
+        balance.balance += point;
+        await this.balanceRepository.updateBalance(
+          balance,
+          transactionalEntityManager,
+        );
 
-    const user = await this.userRepository.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new NotFoundException('User not found');
 
-    user.balance += point;
-    try {
-      await this.userRepository.updateUser(userId, user);
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to update user');
-    }
+        user.balance += point;
+        await this.userRepository.updateUser(
+          userId,
+          user,
+          transactionalEntityManager,
+        );
+      },
+    );
 
-    return { balance: balance.balance };
+    return {
+      balance: (await this.balanceRepository.findByUserId(userId)).balance,
+    };
   }
 
   async usePoint(userId: number, point: number): Promise<void> {
-    const user = await this.userRepository.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    const manager = this.dataSource.createEntityManager();
 
-    if (user.balance < point) throw new Error('Insufficient balance');
+    await manager.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new NotFoundException('User not found');
 
-    user.balance -= point;
-    const updatedUser = await this.userRepository.updateUser(userId, user);
-    if (!updatedUser)
-      throw new InternalServerErrorException('Failed to update user');
+        if (user.balance < point) throw new Error('Insufficient balance');
 
-    const balance = await this.balanceRepository.findByUserId(userId);
-    if (!balance) throw new NotFoundException('Balance not found');
+        user.balance -= point;
+        await this.userRepository.updateUser(
+          userId,
+          user,
+          transactionalEntityManager,
+        );
 
-    balance.balance -= point;
-    await this.balanceRepository.updateBalance(balance);
+        const balance = await this.balanceRepository.findByUserId(userId);
+        if (!balance) throw new NotFoundException('Balance not found');
+
+        balance.balance -= point;
+        await this.balanceRepository.updateBalance(
+          balance,
+          transactionalEntityManager,
+        );
+      },
+    );
   }
 
   async getPoint(userId: number): Promise<{ balance: number }> {
