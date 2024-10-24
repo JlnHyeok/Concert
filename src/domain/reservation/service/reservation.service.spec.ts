@@ -12,6 +12,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Payment } from '../model/entity/payment.entity';
 import { Reservation } from '../model/entity/reservation.entity';
 import { DataSource } from 'typeorm';
+import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
 
 describe('ReservationService', () => {
   let service: ReservationService;
@@ -68,7 +69,7 @@ describe('ReservationService', () => {
   });
 
   describe('createPayment', () => {
-    it('should throw NotFoundException if reservation not found', async () => {
+    it('should throw BusinessException if reservation not found', async () => {
       const reservationId = 1;
       const price = 100;
 
@@ -77,11 +78,11 @@ describe('ReservationService', () => {
         .mockResolvedValue(null);
 
       await expect(service.createPayment(reservationId, price)).rejects.toThrow(
-        NotFoundException,
+        RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND.message,
       );
     });
 
-    it('should throw BadRequestException if price is less than or equal to zero', async () => {
+    it('should throw BusinessException if price is less than zero', async () => {
       const reservationId = 1; // 유효한 예약 ID
 
       // Mock이 예약을 반환하도록 설정
@@ -92,16 +93,16 @@ describe('ReservationService', () => {
         createdAt: new Date(),
       });
 
-      const price = 0; // 0 이하의 가격
+      const price = -100; // 0 이하의 가격
 
       await expect(service.createPayment(reservationId, price)).rejects.toThrow(
-        BadRequestException,
+        RESERVATION_ERROR_CODES.PRICE_INVALID.message,
       );
     });
   });
 
   describe('getReservation', () => {
-    it('should throw NotFoundException if no reservations found for user', async () => {
+    it('should throw BusinessException if no reservations found for user', async () => {
       const userId = 1;
 
       jest
@@ -109,7 +110,7 @@ describe('ReservationService', () => {
         .mockResolvedValue([]);
 
       await expect(service.getReservation(userId)).rejects.toThrow(
-        NotFoundException,
+        RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND.message,
       );
     });
 
