@@ -2,13 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { IUserRepository } from '../model/repository/user.repository';
 import { IBalanceRepository } from '../model/repository/balance.repository';
-import {
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { Balance } from '../model/entity/balance.entity';
 import { User } from '../model/entity/user.entity';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { USER_ERROR_CODES } from '../error/user.error';
 
 describe('UserService', () => {
   let userService: UserService;
@@ -67,7 +63,7 @@ describe('UserService', () => {
       jest.spyOn(userRepository, 'findById').mockResolvedValue(null); // User does not exist
 
       await expect(userService.findUserById(userId)).rejects.toThrow(
-        NotFoundException,
+        USER_ERROR_CODES.USER_NOT_FOUND.message,
       );
     });
 
