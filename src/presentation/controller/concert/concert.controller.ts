@@ -2,18 +2,18 @@ import { Controller, Get, Param, BadRequestException } from '@nestjs/common';
 import {
   GetScheduleRequestDto,
   GetSeatsRequestDto,
-} from '../dto/request/concert.request.dto';
+} from '../../dto/request/concert.request.dto';
 import {
   GetScheduleResponseDto,
   GetSeatsResponseDto,
-} from '../dto/response/concert.response.dto';
+} from '../../dto/response/concert.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ConcertService } from '../../domain/concert/service/consert.service';
+import { ConcertFacade } from '../../../application/facades/concert/concert.facade';
 
 @ApiTags('concert')
 @Controller('concert')
 export class ConcertController {
-  constructor(private readonly concertService: ConcertService) {}
+  constructor(private readonly ConcertFacade: ConcertFacade) {}
 
   @Get('schedule/:concertId')
   @ApiResponse({ status: 200, type: GetScheduleResponseDto, isArray: true })
@@ -23,12 +23,7 @@ export class ConcertController {
   ): Promise<GetScheduleResponseDto[]> {
     const { concertId } = params;
 
-    // concertId 유효성 검사 추가
-    if (!concertId || isNaN(Number(concertId))) {
-      throw new BadRequestException('Invalid concertId');
-    }
-
-    return await this.concertService.getAvailableDates(concertId);
+    return await this.ConcertFacade.getAvailableDates(concertId);
   }
 
   @Get('/seat/:concertId/:performanceDate')
@@ -39,11 +34,6 @@ export class ConcertController {
   ): Promise<GetSeatsResponseDto[]> {
     const { concertId, performanceDate } = params;
 
-    // concertId 유효성 검사 추가
-    if (!concertId || isNaN(Number(concertId))) {
-      throw new BadRequestException('Invalid concertId');
-    }
-
-    return await this.concertService.getSeats(concertId, performanceDate);
+    return await this.ConcertFacade.getSeats(concertId, performanceDate);
   }
 }
