@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
   CONCERT_REPOSITORY,
   IConcertRepository,
@@ -14,7 +14,8 @@ import {
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
 import { DataSource } from 'typeorm'; // DataSource import
-import dayjs from 'dayjs';
+import { BusinessException } from '../../../common/exception/business-exception';
+import { CONCERT_ERROR_CODES } from '../error/concert.error';
 
 @Injectable()
 export class ConcertService {
@@ -31,7 +32,10 @@ export class ConcertService {
   async getSeat(id: number): Promise<Seat> {
     const seat = await this.seatRepository.findById(id);
     if (!seat) {
-      throw new NotFoundException(`Seat with ID ${id} not found`);
+      throw new BusinessException(
+        CONCERT_ERROR_CODES.SEAT_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
     }
     return seat;
   }
@@ -40,12 +44,13 @@ export class ConcertService {
     return await this.dataSource.transaction(async (manager) => {
       const seats = await this.seatRepository.findByConcertAndDate(
         concertId,
-        new Date(),
+        new Date(performanceDate),
         manager, // 트랜잭션 매니저 전달
       );
       if (!seats || seats.length === 0) {
-        throw new NotFoundException(
-          `No seats found for concert ID ${concertId} on date ${performanceDate}`,
+        throw new BusinessException(
+          CONCERT_ERROR_CODES.SEATS_NOT_FOUND,
+          HttpStatus.NOT_FOUND,
         );
       }
       return seats;
@@ -60,8 +65,9 @@ export class ConcertService {
     const dates =
       await this.performanceDateRepository.findByConcertId(concertId);
     if (!dates || dates.length === 0) {
-      throw new NotFoundException(
-        `No available dates found for concert ID ${concertId}`,
+      throw new BusinessException(
+        CONCERT_ERROR_CODES.PERFORMANCE_DATE_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
       );
     }
     return dates;
@@ -75,8 +81,9 @@ export class ConcertService {
         manager,
       );
       if (!updatedSeat) {
-        throw new NotFoundException(
-          `Seat with ID ${seatId} not found for update`,
+        throw new BusinessException(
+          CONCERT_ERROR_CODES.UPDATE_SEAT_FAILED,
+          HttpStatus.BAD_REQUEST,
         );
       }
       return updatedSeat;
