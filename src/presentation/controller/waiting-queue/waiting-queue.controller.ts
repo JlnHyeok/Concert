@@ -1,6 +1,4 @@
 import {
-  BadRequestException,
-  Body,
   Controller,
   Get,
   Headers,
@@ -8,28 +6,28 @@ import {
   InternalServerErrorException,
   Post,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { CheckWaitingQueueResponseDto } from '../dto/response/waiting-queue.response.dto';
-import { WaitingQueueService } from '../../domain/waiting-queue/services/waiting-queue.service';
+import { CheckWaitingQueueResponseDto } from '../../dto/response/waiting-queue.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../common/guard/jwt-auth.guard';
+import { WaitingQueueFacade } from '../../../application/facades/waiting-queue/waiting-queue.facade';
 
 @ApiTags('waiting-queue')
 @Controller('waiting-queue')
 export class WaitingQueueController {
-  constructor(private readonly waitingQueueService: WaitingQueueService) {}
+  constructor(private readonly waitingQueueFacade: WaitingQueueFacade) {}
 
   @Get('check')
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, type: CheckWaitingQueueResponseDto })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async checkWaitingQueue(
     @Headers('authorization') token: string,
   ): Promise<CheckWaitingQueueResponseDto> {
-    if (!token) {
-      throw new BadRequestException('Token is missing');
-    }
-    token = token.split(' ')[1];
-    return await this.waitingQueueService.checkWaitingQueue(token);
+    token = token?.split(' ')[1];
+    return await this.waitingQueueFacade.checkWaitingQueue(token);
   }
 
   @Post('issue')
@@ -37,10 +35,8 @@ export class WaitingQueueController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async issueToken(@Res() res: Response) {
     try {
-      const token = await this.waitingQueueService.generateToken();
-      if (!token) {
-        throw new BadRequestException('Token issuance failed');
-      }
+      const token = await this.waitingQueueFacade.issueToken();
+
       res
         .status(HttpStatus.CREATED)
         .set('Authorization', `Bearer ${token}`)
