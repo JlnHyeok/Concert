@@ -11,11 +11,13 @@ import {
   ChargePointRequestDto,
   CheckPointRequestDto,
   CreateUserRequestDto,
+  UsePointRequestDto,
 } from '../../dto/request/user.request.dto';
 import {
   ChargePointResponseDto,
   CheckPointResponseDto,
   CreateUserResponseDto,
+  UsePointResponseDto,
 } from '../../dto/response/user.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserFacade } from '../../../application/facades/user/user.facade';
@@ -44,6 +46,17 @@ export class UserController {
     const { userId, point } = body;
 
     return await this.userFacade.chargePoint(userId, point);
+  }
+
+  @Post('use')
+  @ApiResponse({ status: 201, type: ChargePointResponseDto })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async usePoint(
+    @Body() body: UsePointRequestDto,
+  ): Promise<UsePointResponseDto> {
+    const { userId, point } = body;
+
+    return await this.userFacade.usePoint(userId, point);
   }
 
   @Get('point/:userId')
