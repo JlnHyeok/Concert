@@ -7,4 +7,8 @@ export const RESERVATION_ERROR_CODES = {
     code: 'RESERVATION_002',
     message: 'Price is invalid',
   },
+  SEAT_ALREADY_RESERVED: {
+    code: 'RESERVATION_003',
+    message: 'Seat is already reserved',
+  },
 };

@@ -41,6 +41,13 @@ export class ReservationService {
   }
 
   async createReservation(userId: number, seatId: number) {
+    const reservations = await this.reservationRepository.findBySeatId(seatId);
+    if (reservations.length > 0) {
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.SEAT_ALREADY_RESERVED,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
     const reservation = await this.reservationRepository.createReservation(
       userId,
       seatId,

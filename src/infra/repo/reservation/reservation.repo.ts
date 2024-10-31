@@ -12,6 +12,13 @@ export class ReservationRepository implements IReservationRepository {
     return await this.reservationRepository.findOne({ where: { id } });
   }
 
+  async findBySeatId(seatId: number): Promise<Reservation[]> {
+    return await this.reservationRepository.find({
+      where: { seat: { id: seatId } },
+      relations: ['user', 'seat'],
+    });
+  }
+
   async findByUserId(userId: number): Promise<Reservation[]> {
     return await this.reservationRepository.find({
       relations: ['user', 'seat'],
