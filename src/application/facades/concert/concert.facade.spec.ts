@@ -6,6 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 describe('ConcertFacade', () => {
   let concertFacade: ConcertFacade;
   let concertService: ConcertService;
+  let performanceDate = new Date('2024-11-01');
 
   const mockConcertService = {
     getAvailableDates: jest.fn(),
@@ -30,7 +31,7 @@ describe('ConcertFacade', () => {
 
   describe('getAvailableDates', () => {
     it('should return available dates for the given concertId', async () => {
-      const mockDates = [{ date: '2024-11-01' }];
+      const mockDates = [{ date: performanceDate }];
       mockConcertService.getAvailableDates.mockResolvedValue(mockDates);
 
       const result = await concertFacade.getAvailableDates(1);
@@ -52,19 +53,29 @@ describe('ConcertFacade', () => {
 
   describe('getSeats', () => {
     it('should return seats for the given concertId and performanceDate', async () => {
-      const mockSeats = [{ seatNumber: 'A1', isAvailable: true }];
+      const mockSeats = [
+        {
+          id: 1,
+          concertId: 1,
+          performanceDate: performanceDate,
+          price: 10000,
+          seatNumber: 1,
+          status: 'AVAILABLE',
+          releaseAt: null,
+        },
+      ];
       mockConcertService.getSeats.mockResolvedValue(mockSeats);
 
-      const result = await concertFacade.getSeats(1, '2024-11-01');
+      const result = await concertFacade.getSeats(1, performanceDate);
 
-      expect(concertService.getSeats).toHaveBeenCalledWith(1, '2024-11-01');
+      expect(concertService.getSeats).toHaveBeenCalledWith(1, performanceDate);
       expect(result).toEqual(mockSeats);
     });
 
     it('should throw NotFoundException if no seats are found', async () => {
       mockConcertService.getSeats.mockRejectedValue(new NotFoundException());
 
-      await expect(concertFacade.getSeats(1, '2024-11-01')).rejects.toThrow(
+      await expect(concertFacade.getSeats(1, performanceDate)).rejects.toThrow(
         NotFoundException,
       );
     });

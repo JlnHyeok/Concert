@@ -13,12 +13,19 @@ export class Concert {
   @Column()
   location: string;
 
-  @OneToMany(() => Seat, (seat) => seat.concert)
+  @OneToMany(() => Seat, (seat) => seat.concert, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   seats: Seat[];
 
   @OneToMany(
     () => PerformanceDate,
     (performanceDate) => performanceDate.concert,
+    {
+      cascade: true,
+      onDelete: 'CASCADE',
+    },
   )
   performanceDates: PerformanceDate[];
 }

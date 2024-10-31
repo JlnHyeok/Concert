@@ -1,12 +1,5 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Concert } from './concert.entity';
-import { Seat } from './seat.entity';
 
 @Entity()
 export class PerformanceDate {
@@ -21,7 +14,4 @@ export class PerformanceDate {
 
   @ManyToOne(() => Concert, (concert) => concert.performanceDates)
   concert: Concert;
-
-  @OneToMany(() => Seat, (seat) => seat.performanceDate)
-  seats: Seat[];
 }

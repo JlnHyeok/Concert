@@ -12,7 +12,11 @@ export class ConcertRepository implements IConcertRepository {
     return await this.concertRepository.find();
   }
 
-  async createConcert(concert: Concert): Promise<Concert> {
+  async createConcert(name: string, location: string): Promise<Concert> {
+    const concert = {
+      name,
+      location,
+    };
     return await this.concertRepository.save(concert);
   }
 

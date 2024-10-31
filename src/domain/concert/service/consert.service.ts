@@ -16,6 +16,7 @@ import { PerformanceDate } from '../model/entity/performance-date.entity';
 import { DataSource } from 'typeorm'; // DataSource import
 import { BusinessException } from '../../../common/exception/business-exception';
 import { CONCERT_ERROR_CODES } from '../error/concert.error';
+import { Concert } from '../model/entity/concert.entity';
 
 @Injectable()
 export class ConcertService {
@@ -29,6 +30,46 @@ export class ConcertService {
     private readonly dataSource: DataSource, // DataSource 주입
   ) {}
 
+  async getAllConcerts(): Promise<Concert[]> {
+    return await this.concertRepository.findAll();
+  }
+
+  async createConcert(name: string, location: string): Promise<Concert> {
+    return await this.concertRepository.createConcert(name, location);
+  }
+
+  async createPerformanceDate(
+    concertId: number,
+    performanceDate: Date,
+  ): Promise<PerformanceDate> {
+    return await this.performanceDateRepository.createPerformanceDate(
+      concertId,
+      performanceDate,
+    );
+  }
+
+  async createSeat(seat: {
+    concertId: number;
+    performanceDate: Date;
+    seatNumber: number;
+    price: number;
+  }): Promise<Seat> {
+    const { concertId, performanceDate, seatNumber } = seat;
+    let createdSeat;
+    await this.dataSource.transaction(async (manager) => {
+      const seats = await this.seatRepository.findByConcertAndDate(
+        concertId,
+        performanceDate,
+        manager,
+      );
+      const isExist = seats.some((seat) => seat.seatNumber === seatNumber);
+      if (isExist) return;
+
+      createdSeat = await this.seatRepository.createSeat(seat);
+    });
+    return createdSeat;
+  }
+
   async getSeat(id: number): Promise<Seat> {
     const seat = await this.seatRepository.findById(id);
     if (!seat) {
@@ -40,11 +81,11 @@ export class ConcertService {
     return seat;
   }
 
-  async getSeats(concertId: number, performanceDate: string): Promise<Seat[]> {
+  async getSeats(concertId: number, performanceDate: Date): Promise<Seat[]> {
     return await this.dataSource.transaction(async (manager) => {
       const seats = await this.seatRepository.findByConcertAndDate(
         concertId,
-        new Date(performanceDate),
+        performanceDate,
         manager, // 트랜잭션 매니저 전달
       );
       if (!seats || seats.length === 0) {
@@ -88,5 +129,11 @@ export class ConcertService {
       }
       return updatedSeat;
     });
+  }
+
+  async deleteConcert(id: number): Promise<void> {
+    await this.seatRepository.deleteSeatByConcertId(id);
+    await this.performanceDateRepository.deletePerformanceDateByConcertId(id);
+    await this.concertRepository.deleteConcert(id);
   }
 }

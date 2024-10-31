@@ -6,10 +6,12 @@ export interface IPerformanceDateRepository {
   findAll(): Promise<PerformanceDate[]>;
   findByConcertId(concertId: number): Promise<PerformanceDate[]>;
   createPerformanceDate(
-    performanceDate: PerformanceDate,
+    concertId: number,
+    performanceData: Date,
   ): Promise<PerformanceDate>;
   updatePerformanceDate(
     performanceDate: PerformanceDate,
   ): Promise<PerformanceDate>;
   deletePerformanceDate(id: number): Promise<void>;
+  deletePerformanceDateByConcertId(id: number): Promise<void>;
 }
