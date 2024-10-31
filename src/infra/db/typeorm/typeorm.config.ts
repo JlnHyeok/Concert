@@ -9,6 +9,7 @@ import { Reservation } from '../../../domain/reservation/model/entity/reservatio
 import { User } from '../../../domain/user/model/entity/user.entity';
 import { WaitingQueue } from '../../../domain/waiting-queue/model/entity/waiting-queue.entity';
 import { DataSource } from 'typeorm';
+import { Balance } from '../../../domain/user/model/entity/balance.entity';
 
 // NestJs 내부 서비스에서 데이터베이스를 사용하기 위한 설정.
 // 주로 서비스에서 레포지토리나 엔티티를 주입할 때 사용.
@@ -24,6 +25,7 @@ export const typeOrmConfigFactory = async (
   database: configService.get<string>('DB_NAME', 'concert'),
   entities: [
     User,
+    Balance,
     WaitingQueue,
     Seat,
     Payment,
