@@ -1,7 +1,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 import { ISeatRepository } from '../../../domain/concert/model/repository/seat.repository';
 import { Repository, EntityManager } from 'typeorm';
+import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 
 export class SeatRepository implements ISeatRepository {
   constructor(
@@ -21,19 +21,31 @@ export class SeatRepository implements ISeatRepository {
 
   async findByConcertAndDate(
     concertId: number,
-    concertDate: Date,
+    performanceDate: Date,
     manager: EntityManager, // 트랜잭션 매니저를 전달받도록 수정
   ): Promise<Seat[] | null> {
-    return await manager.find(Seat, {
+    return manager.find(Seat, {
       where: {
         concertId,
-        performanceDate: concertDate,
+        performanceDate,
       },
+      lock: { mode: 'pessimistic_write' },
     });
   }
 
-  async createSeat(seat: Seat): Promise<Seat> {
-    return await this.seatRepository.save(seat);
+  async createSeat(seat: {
+    concertId: number;
+    performanceDate: Date;
+    seatNumber: number;
+    price: number;
+  }): Promise<Seat> {
+    let newSeat = {
+      ...seat,
+      id: null,
+      status: 'AVAILABLE' as 'AVAILABLE',
+      releaseAt: null,
+    };
+    return this.seatRepository.save(newSeat);
   }
 
   async updateSeat(
@@ -52,5 +64,9 @@ export class SeatRepository implements ISeatRepository {
 
   async deleteSeat(id: number): Promise<void> {
     await this.seatRepository.delete(id);
+  }
+
+  async deleteSeatByConcertId(concertId: number): Promise<void> {
+    await this.seatRepository.delete({ concertId });
   }
 }

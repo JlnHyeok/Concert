@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../../user/model/entity/user.entity';
 import { Seat } from '../../../concert/model/entity/seat.entity';
@@ -21,6 +22,6 @@ export class Reservation {
   @JoinColumn({ name: 'seat_id' })
   seat: Seat;
 
-  @Column('timestamp')
+  @Column()
   createdAt: Date;
 }

@@ -5,6 +5,7 @@ import {
   Post,
   BadRequestException,
   UseGuards,
+  Body,
 } from '@nestjs/common';
 import { ReservationFacade } from '../../../application/facades/reservation/reservation.facade';
 import {
@@ -29,10 +30,10 @@ export class ReservationController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async reservationSeat(
     @Headers('authorization') token: string,
-    @Param() params: ReservationSeatRequestDto,
+    @Body() body: ReservationSeatRequestDto,
   ): Promise<ReservationResponseDto> {
-    const { userId, concertId, performanceDate, seatNumber } = params;
-
+    const { userId, concertId, performanceDate, seatNumber } = body;
+    token = token?.split(' ')[1];
     return await this.reservationFacade.createReservation({
       token,
       userId,
@@ -48,10 +49,10 @@ export class ReservationController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async createPayment(
     @Headers('authorization') token: string,
-    @Param() params: PaymentReservationRequestDto,
+    @Body() body: PaymentReservationRequestDto,
   ): Promise<PaymentResponseDto> {
-    const { userId, seatId } = params;
-
+    const { userId, seatId } = body;
+    token = token?.split(' ')[1];
     return await this.reservationFacade.createPayment(token, userId, seatId);
   }
 }

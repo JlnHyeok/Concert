@@ -13,7 +13,9 @@ export class ReservationRepository implements IReservationRepository {
   }
 
   async findByUserId(userId: number): Promise<Reservation[]> {
-    return await this.reservationRepository.find({ where: { id: userId } });
+    return await this.reservationRepository.find({
+      relations: ['user', 'seat'],
+    });
   }
 
   async createReservation(
@@ -21,7 +23,14 @@ export class ReservationRepository implements IReservationRepository {
     seatId: number,
     createdAt: Date,
   ): Promise<Reservation> {
-    return await this.reservationRepository.save({ userId, seatId, createdAt });
+    return await this.reservationRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Reservation)
+      .values({ user: { id: userId }, seat: { id: seatId }, createdAt })
+      .returning('*')
+      .execute()
+      .then((result) => result.raw[0]);
   }
 
   async deleteReservation(id: number): Promise<void> {
@@ -44,7 +53,7 @@ export class ReservationRepository implements IReservationRepository {
     userId: number,
   ): Promise<Reservation[]> {
     return await manager.find(Reservation, {
-      where: { id: userId },
+      relations: ['user', 'seat'],
       lock: { mode: 'pessimistic_write' }, // 비관적 락 설정
     });
   }

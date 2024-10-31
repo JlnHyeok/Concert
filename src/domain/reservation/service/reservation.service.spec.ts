@@ -20,6 +20,8 @@ describe('ReservationService', () => {
   let paymentRepository: IPaymentRepository;
 
   const mockReservationRepository = {
+    findById: jest.fn(),
+    findByUserId: jest.fn(),
     findByIdWithLock: jest.fn(),
     findByUserIdWithLock: jest.fn(),
     createReservation: jest.fn(),
@@ -128,15 +130,12 @@ describe('ReservationService', () => {
       ];
 
       jest
-        .spyOn(reservationRepository, 'findByUserIdWithLock')
+        .spyOn(reservationRepository, 'findByUserId')
         .mockResolvedValue(mockReservations);
 
       const result = await service.getReservation(userId);
       expect(result).toEqual(mockReservations);
-      expect(reservationRepository.findByUserIdWithLock).toHaveBeenCalledWith(
-        expect.anything(),
-        userId,
-      );
+      expect(reservationRepository.findByUserId).toHaveBeenCalledWith(userId);
     });
   });
 });
