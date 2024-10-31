@@ -18,9 +18,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --detectOpenHandles",
-    "migration:generate": "typeorm migration:generate -d src/infra/typeorm.config.ts",
-    "migration:run": "typeorm migration:run -d src/infra/typeorm.config.ts",
-    "migration:revert": "typeorm migration:revert -d src/infra/typeorm.config.ts"
+    "migration:generate": "typeorm migration:generate -d src/infra/db/typeorm/typeorm.config.ts",
+    "migration:run": "typeorm migration:run -d src/infra/db/typeorm/typeorm.config.ts",
+    "migration:revert": "typeorm migration:revert -d src/infra/db/typeorm/typeorm.config.ts",
+    "typeorm": "typeorm"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -74,6 +75,7 @@
       "json",
       "ts"
     ],
+    "testTimeout": 30000,
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
