@@ -15,6 +15,10 @@ export class UserFacade {
     return await this.userService.chargePoint(userId, point);
   }
 
+  async usePoint(userId: number, point: number) {
+    return await this.userService.usePoint(userId, point);
+  }
+
   async checkPoint(userId: number) {
     return await this.userService.getPoint(userId);
   }
