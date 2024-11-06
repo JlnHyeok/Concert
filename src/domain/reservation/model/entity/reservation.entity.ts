@@ -5,11 +5,13 @@ import {
   ManyToOne,
   JoinColumn,
   VersionColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../../../user/model/entity/user.entity';
 import { Seat } from '../../../concert/model/entity/seat.entity';
 
 @Entity()
+@Unique(['seat'])
 export class Reservation {
   @PrimaryGeneratedColumn()
   id: number;
@@ -24,4 +26,7 @@ export class Reservation {
 
   @Column()
   createdAt: Date;
+
+  @VersionColumn()
+  version: number;
 }

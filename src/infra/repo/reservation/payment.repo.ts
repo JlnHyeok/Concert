@@ -25,17 +25,14 @@ export class PaymentRepository implements IPaymentRepository {
     price: number,
     createdAt: Date,
   ): Promise<Payment> {
-    try {
-      return await this.paymentRepository.save({
-        reservationId,
-        price,
-        createdAt,
-      });
-    } catch (error) {
-      if (error instanceof OptimisticLockVersionMismatchError) {
-        throw new ConflictException('Optimistic lock error');
-      }
-    }
+    return await this.paymentRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Payment)
+      .values({ reservation: { id: reservationId }, price, createdAt })
+      .returning('*')
+      .execute()
+      .then((result) => result.raw[0]);
   }
 
   // 추가: 예약과 연관된 결제를 비관적 락으로 생성하는 메서드

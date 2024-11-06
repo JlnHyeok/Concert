@@ -53,13 +53,13 @@ export class SeatRepository implements ISeatRepository {
     updateSeat: Seat,
     manager: EntityManager,
   ): Promise<Seat> {
-    const seat = await this.findById(seatId);
-    if (!seat) {
-      return null;
-    }
-
-    Object.assign(seat, updateSeat);
-    return await manager.save(seat); // 트랜잭션 매니저를 사용하여 저장
+    return await manager
+      .createQueryBuilder()
+      .update(Seat)
+      .set(updateSeat)
+      .where('id = :id', { id: seatId })
+      .execute()
+      .then(() => updateSeat);
   }
 
   async deleteSeat(id: number): Promise<void> {

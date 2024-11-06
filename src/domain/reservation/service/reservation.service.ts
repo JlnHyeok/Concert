@@ -57,29 +57,33 @@ export class ReservationService {
   }
 
   async createPayment(reservationId: number, price: number) {
-    if (price < 0)
+    if (price < 0) {
       throw new BusinessException(
         RESERVATION_ERROR_CODES.PRICE_INVALID,
         HttpStatus.SERVICE_UNAVAILABLE,
       );
-    return this.dataSource.transaction(async (manager) => {
-      const reservation = await this.reservationRepository.findByIdWithLock(
-        manager, // 트랜잭션 매니저 전달
-        reservationId,
-      );
+    }
 
-      if (!reservation) {
-        throw new BusinessException(
-          RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
-        );
-      }
+    const reservation =
+      await this.reservationRepository.findById(reservationId);
 
-      const payment = await this.paymentRepository.createPayment(
-        reservationId,
-        price,
-        new Date(),
+    if (!reservation) {
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
       );
-      return payment;
-    });
+    }
+
+    const payment = await this.paymentRepository.createPayment(
+      reservationId,
+      price,
+      new Date(),
+    );
+
+    return payment;
+  }
+
+  async deleteReservationBySeatId(seatId: number) {
+    return this.reservationRepository.deleteBySeatId(seatId);
   }
 }

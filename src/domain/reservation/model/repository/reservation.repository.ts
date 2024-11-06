@@ -21,4 +21,5 @@ export interface IReservationRepository {
     manager: EntityManager,
     userId: number,
   ): Promise<Reservation[]>;
+  deleteBySeatId(seatId: number): Promise<void>;
 }

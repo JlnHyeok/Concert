@@ -198,7 +198,13 @@ describe('ReservationFacade', () => {
       jest
         .spyOn(reservationService, 'getReservation')
         .mockResolvedValue([
-          { id: 1, seat: mockSeat, user: mockUser, createdAt: new Date() },
+          {
+            id: 1,
+            seat: mockSeat,
+            user: mockUser,
+            createdAt: new Date(),
+            version: 1,
+          },
         ]);
       jest
         .spyOn(userService, 'usePoint')

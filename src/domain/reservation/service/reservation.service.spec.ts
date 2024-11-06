@@ -126,6 +126,7 @@ describe('ReservationService', () => {
           createdAt: new Date(),
           user: null,
           seat: null,
+          version: 1,
         },
       ];
 
