@@ -3,10 +3,12 @@ import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { UserService } from '../../../domain/user/services/user.service';
 import { AppModule } from '../../../app.module';
+import { DataSource } from 'typeorm';
 
 describe('UserController (e2e)', () => {
   let app: INestApplication;
   let userService: UserService;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -15,6 +17,7 @@ describe('UserController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     userService = moduleFixture.get<UserService>(UserService); // UserService 주입
+    dataSource = moduleFixture.get<DataSource>(DataSource); // TypeORM DataSource 인스턴스 가져오기
 
     // ValidationPipe 설정
     app.useGlobalPipes(
@@ -24,10 +27,22 @@ describe('UserController (e2e)', () => {
         transform: true, // 요청 객체를 자동 변환
       }),
     );
+
     await app.init();
   });
 
   afterAll(async () => {
+    // 테스트 데이터 정리
+    await dataSource.manager.query(`
+      DELETE FROM "user" CASCADE;`);
+    await dataSource.manager.query(`
+      DELETE FROM "balance" CASCADE;`);
+    await dataSource.manager.query(
+      'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
+    );
+    await dataSource.manager.query(
+      'TRUNCATE TABLE balance RESTART IDENTITY CASCADE',
+    );
     await app.close();
   });
 

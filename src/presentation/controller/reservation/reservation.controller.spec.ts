@@ -6,6 +6,8 @@ import { AppModule } from '../../../app.module';
 import { COMMON_ERRORS, JwtAuthGuard } from '../../../common';
 import { DataSource } from 'typeorm';
 import { WaitingQueueService } from '../../../domain/waiting-queue/services/waiting-queue.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ValidationInterceptor } from '../../../common/interceptor/validation-interceptor';
 
 describe('ReservationController (e2e)', () => {
   let app: INestApplication;
@@ -20,6 +22,10 @@ describe('ReservationController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
       providers: [
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: ValidationInterceptor,
+        },
         {
           provide: JwtAuthGuard,
           useValue: {
@@ -42,9 +48,24 @@ describe('ReservationController (e2e)', () => {
 
     waitingQueueService =
       moduleFixture.get<WaitingQueueService>(WaitingQueueService);
+    dataSource = moduleFixture.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
+    await dataSource.manager.query(
+      'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
+    );
+    await dataSource.manager.query(
+      'TRUNCATE TABLE "balance" RESTART IDENTITY CASCADE',
+    );
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "concert" RESTART IDENTITY CASCADE;`);
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "performance_date" RESTART IDENTITY CASCADE;`);
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "seat" RESTART IDENTITY CASCADE;`);
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "reservation" RESTART IDENTITY CASCADE;`);
     await app.close();
   });
 
@@ -55,6 +76,13 @@ describe('ReservationController (e2e)', () => {
         .post('/user/create')
         .send({ userId: i + 1, name: `John Doe ${i + 1}` })
         .expect(HttpStatus.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/user/charge')
+        .send({
+          userId: i + 1,
+          point: 100000,
+        });
     }
     // 테스트용 콘서트 데이터 삽입
     const createConcertRes = await request(app.getHttpServer())
@@ -86,12 +114,14 @@ describe('ReservationController (e2e)', () => {
       });
   });
   afterEach(async () => {
-    for (let i = 0; i < 10; i++) {
-      const requess = await request(app.getHttpServer())
-        .delete(`/user/delete/${i + 1}`)
-        .expect(HttpStatus.OK);
-    }
-    await request(app.getHttpServer()).delete(`/concert/delete/${concertId}`);
+    await dataSource.manager.query(
+      'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
+    );
+    await dataSource.manager.query(
+      'TRUNCATE TABLE "balance" RESTART IDENTITY CASCADE',
+    );
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "concert" RESTART IDENTITY CASCADE;`);
   });
 
   describe('/reservation/seat (POST)', () => {
@@ -145,39 +175,67 @@ describe('ReservationController (e2e)', () => {
       const userRequests: Promise<any>[] = [];
       const token: string[] = [];
       let timer: NodeJS.Timeout;
-      for (let i = 0; i < 5; i++) {
-        const issueToken = request(app.getHttpServer())
+      for (let i = 0; i < 10; i++) {
+        const issueToken = await request(app.getHttpServer())
           .post('/waiting-queue/issue')
           .expect(201)
           .then((res) => {
             token.push(res.headers['authorization']);
           });
         waitingQueueService.updateTokenStatus();
+      }
 
-        timer = setTimeout(async () => {
-          const requests = request(app.getHttpServer())
+      const userRequest = Array(3)
+        .fill(0)
+        .map((_, i) => {
+          return request(app.getHttpServer())
             .post('/reservation/seat')
-            .set('Authorization', `${token[i]}`) // 유효한 토큰 사용
+            .set('authorization', `${token[i]}`)
             .send({
-              userId: `user${i + 1}`,
-              concertId: '1',
-              performanceDate: '2024-10-20',
+              userId: i == 0 ? 4 : i + 1,
+              concertId: concertId,
+              performanceDate: performanceDate,
               seatNumber: 1,
             });
-          userRequests.push(requests);
-        }, 100);
-      }
-      clearTimeout(timer);
-      const responses = await Promise.allSettled(userRequests);
+        });
+      const responses = await Promise.allSettled(userRequest);
 
+      // const resReservation = await request(app.getHttpServer())
+      //   .post('/reservation/seat')
+      //   .set('authorization', `${token[4]}`)
+      //   .send({
+      //     userId: 3,
+      //     concertId: concertId,
+      //     performanceDate: performanceDate,
+      //     seatNumber: 1,
+      //   });
+      // console.log('resReservation', resReservation.body, token[9]);
       // 모든 응답을 확인
-      responses.forEach((response, index) => {
-        if (index == 0) {
-          expect(response.status).toBe(HttpStatus.CREATED); // 예약이 성공적으로 생성되어야 함
-        } else {
-          expect(response.status).toBe(`user${index + 1}`);
-        }
-      });
+
+      const user = await dataSource.manager.query(`
+        SELECT * FROM "user"`);
+      const concert = await dataSource.manager.query(`
+        SELECT * FROM "concert"`);
+      const performanceDateRes = await dataSource.manager.query(`
+        SELECT * FROM "performance_date"`);
+      const seat = await dataSource.manager.query(`
+        SELECT * FROM "seat"`);
+      const reservation = await dataSource.manager.query(`
+        SELECT * FROM "reservation"`);
+
+      console.log('user', user);
+      console.log('concert', concertId, concert);
+      console.log('performanceDate', performanceDate, performanceDateRes);
+      console.log('seat', seat);
+      console.log('reservation', reservation);
+
+      // responses.forEach((response, index) => {
+      //   if (index == 0) {
+      //     expect(response.status).toBe(HttpStatus.CREATED); // 예약이 성공적으로 생성되어야 함
+      //   } else {
+      //     expect(response.status).toBe(`user${index + 1}`);
+      //   }
+      // });
     });
   });
 

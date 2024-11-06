@@ -2,7 +2,6 @@ import { ReservationService } from '../../../domain/reservation/service/reservat
 import { WaitingQueueService } from '../../../domain/waiting-queue/services/waiting-queue.service';
 import { UserService } from '../../../domain/user/services/user.service';
 import { ConcertService } from '../../../domain/concert/service/consert.service';
-import dayjs from 'dayjs';
 import { Injectable, Inject, HttpStatus } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { BusinessException } from '../../../common/exception/business-exception';
@@ -67,7 +66,11 @@ export class ReservationFacade {
       );
 
     seat.status = 'HOLD';
-    seat.releaseAt = new Date(new Date().getMinutes() + 5);
+
+    // 현재 시간에서 5분 후로 설정 코드 작성
+    seat.releaseAt = new Date(
+      new Date().setMinutes(new Date().getMinutes() + 5),
+    );
     await this.concertService.updateSeat(seat.id, seat);
 
     return this.reservationService.createReservation(userId, seat.id);
@@ -95,6 +98,13 @@ export class ReservationFacade {
 
     const seat = await this.concertService.getSeat(seatId);
 
+    if (seat.status !== 'HOLD') {
+      throw new BusinessException(
+        COMMON_ERRORS.NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     const reservations = await this.reservationService.getReservation(userId);
 
     const reservation = reservations.find((r) => r?.seat?.id === seatId);
@@ -121,6 +131,8 @@ export class ReservationFacade {
       if (new Date(seat.releaseAt) <= now) {
         seat.status = 'AVAILABLE';
         await this.concertService.updateSeat(seat.id, seat);
+
+        await this.reservationService.deleteReservationBySeatId(seat.id);
       }
     }
   }

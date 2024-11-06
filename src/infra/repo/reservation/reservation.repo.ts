@@ -1,5 +1,9 @@
 import { Reservation } from '../../../domain/reservation/model/entity/reservation.entity';
-import { EntityManager, Repository } from 'typeorm';
+import {
+  EntityManager,
+  OptimisticLockVersionMismatchError,
+  Repository,
+} from 'typeorm';
 import { IReservationRepository } from '../../../domain/reservation/model/repository/reservation.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -30,14 +34,24 @@ export class ReservationRepository implements IReservationRepository {
     seatId: number,
     createdAt: Date,
   ): Promise<Reservation> {
-    return await this.reservationRepository
-      .createQueryBuilder()
-      .insert()
-      .into(Reservation)
-      .values({ user: { id: userId }, seat: { id: seatId }, createdAt })
-      .returning('*')
-      .execute()
-      .then((result) => result.raw[0]);
+    try {
+      return await this.reservationRepository.save({
+        id: seatId,
+        user: { id: userId },
+        seat: { id: seatId },
+        createdAt,
+      });
+    } catch (e) {
+      throw OptimisticLockVersionMismatchError;
+    }
+    // return await this.reservationRepository
+    //   .createQueryBuilder()
+    //   .insert()
+    //   .into(Reservation)
+    //   .values({ user: { id: userId }, seat: { id: seatId }, createdAt })
+    //   .returning('*')
+    //   .execute()
+    //   .then((result) => result.raw[0]);
   }
 
   async deleteReservation(id: number): Promise<void> {
@@ -63,5 +77,9 @@ export class ReservationRepository implements IReservationRepository {
       relations: ['user', 'seat'],
       lock: { mode: 'pessimistic_write' }, // 비관적 락 설정
     });
+  }
+
+  async deleteBySeatId(seatId: number): Promise<void> {
+    await this.reservationRepository.delete({ seat: { id: seatId } });
   }
 }

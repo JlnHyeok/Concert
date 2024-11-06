@@ -115,12 +115,15 @@ export class ConcertService {
   }
 
   async updateSeat(seatId: number, seat: Seat): Promise<Seat> {
+    console.log('updateSeat');
     return await this.dataSource.transaction(async (manager) => {
       const updatedSeat = await this.seatRepository.updateSeat(
         seatId,
         seat,
         manager,
       );
+
+      console.log(updatedSeat);
       if (!updatedSeat) {
         throw new BusinessException(
           CONCERT_ERROR_CODES.UPDATE_SEAT_FAILED,
