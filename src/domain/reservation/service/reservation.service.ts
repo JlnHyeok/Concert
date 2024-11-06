@@ -12,7 +12,7 @@ import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
 } from '../model/repository/payment.repository';
-import dayjs from 'dayjs';
+import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
 
 @Injectable()
 export class ReservationService {
@@ -21,16 +21,21 @@ export class ReservationService {
     private readonly reservationRepository: IReservationRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getReservation(userId: number) {
-    const reservations = await this.reservationRepository.findByUserId(userId);
-    if (!reservations.length) {
-      throw new NotFoundException(
-        `No reservations found for user with ID ${userId}`,
-      );
-    }
-    return reservations;
+    return this.dataSource.transaction(async (manager) => {
+      const reservations =
+        await this.reservationRepository.findByUserIdWithLock(manager, userId);
+
+      if (!reservations.length) {
+        throw new NotFoundException(
+          `No reservations found for user with ID ${userId}`,
+        );
+      }
+      return reservations;
+    });
   }
 
   async createReservation(userId: number, seatId: number) {
@@ -43,23 +48,28 @@ export class ReservationService {
   }
 
   async createPayment(reservationId: number, price: number) {
-    const reservation =
-      await this.reservationRepository.findById(reservationId);
-    if (!reservation) {
-      throw new NotFoundException(
-        `Reservation with ID ${reservationId} not found`,
-      );
-    }
-
     if (price <= 0) {
       throw new BadRequestException('Price must be greater than zero');
     }
 
-    const payment = await this.paymentRepository.createPayment(
-      reservationId,
-      price,
-      new Date(),
-    );
-    return payment;
+    return this.dataSource.transaction(async (manager) => {
+      const reservation = await this.reservationRepository.findByIdWithLock(
+        manager, // 트랜잭션 매니저 전달
+        reservationId,
+      );
+
+      if (!reservation) {
+        throw new NotFoundException(
+          `Reservation with ID ${reservationId} not found`,
+        );
+      }
+
+      const payment = await this.paymentRepository.createPayment(
+        reservationId,
+        price,
+        new Date(),
+      );
+      return payment;
+    });
   }
 }

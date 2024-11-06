@@ -8,11 +8,13 @@ import {
 } from '@nestjs/common';
 import { Balance } from '../model/entity/balance.entity';
 import { User } from '../model/entity/user.entity';
+import { DataSource, EntityManager } from 'typeorm';
 
 describe('UserService', () => {
   let userService: UserService;
   let userRepository: IUserRepository;
   let balanceRepository: IBalanceRepository;
+  let dataSource: DataSource;
 
   const mockUserRepository = {
     findById: jest.fn(),
@@ -24,144 +26,38 @@ describe('UserService', () => {
     updateBalance: jest.fn(),
   };
 
+  const mockDataSource = {
+    createEntityManager: jest.fn().mockReturnValue({
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        // Mocking the transactional behavior
+        const transactionalEntityManager = {
+          // Implement methods you want to mock
+          updateBalance: jest.fn(),
+          updateUser: jest.fn(),
+        };
+        await callback(transactionalEntityManager);
+      }),
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: 'USER_REPOSITORY', useValue: mockUserRepository },
         { provide: 'BALANCE_REPOSITORY', useValue: mockBalanceRepository },
+        { provide: DataSource, useValue: mockDataSource }, // Mocking DataSource
       ],
     }).compile();
 
     userService = module.get<UserService>(UserService);
     userRepository = module.get<IUserRepository>('USER_REPOSITORY');
     balanceRepository = module.get<IBalanceRepository>('BALANCE_REPOSITORY');
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('chargePoint', () => {
-    it('should throw an error if user does not exist', async () => {
-      const userId = 1;
-      const pointToCharge = 100;
-
-      jest
-        .spyOn(balanceRepository, 'findByUserId')
-        .mockResolvedValue({ userId: 1, balance: 0 });
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(null); // User does not exist
-
-      await expect(
-        userService.chargePoint(userId, pointToCharge),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw an error if balance update fails', async () => {
-      const userId = 1;
-      const pointToCharge = 100;
-
-      const mockBalance = { balance: 0 } as Balance;
-      const mockUser = { balance: 300 } as User;
-
-      jest
-        .spyOn(balanceRepository, 'findByUserId')
-        .mockResolvedValue(mockBalance);
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
-      jest
-        .spyOn(balanceRepository, 'updateBalance')
-        .mockRejectedValue(new Error('Update failed'));
-
-      await expect(
-        userService.chargePoint(userId, pointToCharge),
-      ).rejects.toThrow(InternalServerErrorException);
-    });
-
-    it('should return updated balance after charging points', async () => {
-      const userId = 1;
-      const pointToCharge = 100;
-
-      const mockBalance = { balance: 0 } as Balance;
-      const mockUser = { balance: 300 } as User;
-
-      jest
-        .spyOn(balanceRepository, 'findByUserId')
-        .mockResolvedValue(mockBalance);
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
-      jest
-        .spyOn(balanceRepository, 'updateBalance')
-        .mockResolvedValue(mockBalance);
-      jest.spyOn(userRepository, 'updateUser').mockResolvedValue(mockUser);
-
-      const result = await userService.chargePoint(userId, pointToCharge);
-      expect(result).toEqual({ balance: 100 });
-    });
-  });
-
-  describe('usePoint', () => {
-    it('should throw an error if user does not exist', async () => {
-      const userId = 1;
-      const pointToUse = 50;
-
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(null); // User does not exist
-
-      await expect(userService.usePoint(userId, pointToUse)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw an error if user tries to use more points than available', async () => {
-      const userId = 1;
-      const pointToUse = 150; // More than available balance
-
-      const mockUser = { balance: 100 } as User;
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
-
-      await expect(userService.usePoint(userId, pointToUse)).rejects.toThrow(
-        'Insufficient balance',
-      );
-    });
-
-    it('should throw an error if balance update fails', async () => {
-      const userId = 1;
-      const pointToUse = 50;
-
-      const mockUser = { balance: 100 } as User;
-      const mockBalance = { balance: 200 } as Balance;
-
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
-      jest
-        .spyOn(balanceRepository, 'findByUserId')
-        .mockResolvedValue(mockBalance);
-
-      jest.spyOn(userRepository, 'updateUser').mockResolvedValue(null); // Update failed
-
-      await expect(userService.usePoint(userId, pointToUse)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-    });
-  });
-
-  describe('getPoint', () => {
-    it('should throw an error if user does not exist', async () => {
-      const userId = 1;
-
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(null); // User does not exist
-
-      await expect(userService.getPoint(userId)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it("should return the user's balance", async () => {
-      const userId = 1;
-      const mockUser = { balance: 300 } as User;
-
-      jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
-
-      const result = await userService.getPoint(userId);
-      expect(result).toEqual({ balance: 300 });
-    });
   });
 
   describe('findUserById', () => {

@@ -13,6 +13,7 @@ import {
 } from '../model/repository/performance-date.repository';
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
+import { DataSource } from 'typeorm'; // DataSource import
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class ConcertService {
     private readonly seatRepository: ISeatRepository,
     @Inject(PERFORMANCE_DATE_REPOSITORY)
     private readonly performanceDateRepository: IPerformanceDateRepository,
+    private readonly dataSource: DataSource, // DataSource 주입
   ) {}
 
   async getSeat(id: number): Promise<Seat> {
@@ -35,16 +37,19 @@ export class ConcertService {
   }
 
   async getSeats(concertId: number, performanceDate: string): Promise<Seat[]> {
-    const seats = await this.seatRepository.findByConcertAndDate(
-      concertId,
-      new Date(),
-    );
-    if (!seats || seats.length === 0) {
-      throw new NotFoundException(
-        `No seats found for concert ID ${concertId} on date ${performanceDate}`,
+    return await this.dataSource.transaction(async (manager) => {
+      const seats = await this.seatRepository.findByConcertAndDate(
+        concertId,
+        new Date(),
+        manager, // 트랜잭션 매니저 전달
       );
-    }
-    return seats;
+      if (!seats || seats.length === 0) {
+        throw new NotFoundException(
+          `No seats found for concert ID ${concertId} on date ${performanceDate}`,
+        );
+      }
+      return seats;
+    });
   }
 
   async getAllSeats(): Promise<Seat[]> {
@@ -63,12 +68,18 @@ export class ConcertService {
   }
 
   async updateSeat(seatId: number, seat: Seat): Promise<Seat> {
-    const updatedSeat = await this.seatRepository.updateSeat(seatId, seat);
-    if (!updatedSeat) {
-      throw new NotFoundException(
-        `Seat with ID ${seatId} not found for update`,
+    return await this.dataSource.transaction(async (manager) => {
+      const updatedSeat = await this.seatRepository.updateSeat(
+        seatId,
+        seat,
+        manager,
       );
-    }
-    return updatedSeat;
+      if (!updatedSeat) {
+        throw new NotFoundException(
+          `Seat with ID ${seatId} not found for update`,
+        );
+      }
+      return updatedSeat;
+    });
   }
 }

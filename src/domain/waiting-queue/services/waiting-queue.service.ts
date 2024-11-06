@@ -1,5 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { WaitingQueue } from '../model/entity/waiting-queue.entity';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   WAITING_QUEUE_REPOSITORY,
@@ -9,6 +8,8 @@ import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { Cron } from '@nestjs/schedule';
 import dayjs from 'dayjs';
+import { DataSource } from 'typeorm';
+import { WaitingQueue } from '../model/entity/waiting-queue.entity';
 
 @Injectable()
 export class WaitingQueueService {
@@ -16,6 +17,7 @@ export class WaitingQueueService {
     @Inject(WAITING_QUEUE_REPOSITORY)
     private readonly waitingQueueRepository: IWaitingQueueRepository,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async checkWaitingQueue(token: string): Promise<{
@@ -25,51 +27,73 @@ export class WaitingQueueService {
     expireAt?: Date;
   }> {
     const decodedToken = this.verifyToken(token);
-    const queueInfo = await this.waitingQueueRepository.findByUUID(
-      decodedToken.uuid,
-    );
 
-    if (!queueInfo) {
-      throw new Error('Queue information not found');
-    }
+    return await this.dataSource.transaction(async (manager) => {
+      const queueInfo = await this.waitingQueueRepository.findByUUIDWithLock(
+        manager,
+        decodedToken.uuid,
+      );
 
-    if (queueInfo.status === 'PROCESSING') {
-      return {
-        waitingNumber: 0,
-        remainingTime: 0,
-        status: 'PROCESSING',
-        expireAt: dayjs(queueInfo.expireAt).toDate(),
-      };
-    }
+      if (!queueInfo) {
+        throw new Error('Queue information not found');
+      }
 
-    if (queueInfo.status === 'EXPIRED') {
-      return {
-        waitingNumber: Infinity,
-        remainingTime: Infinity,
-        status: 'EXPIRED',
-      };
-    }
+      if (queueInfo.status === 'PROCESSING') {
+        return {
+          waitingNumber: 0,
+          remainingTime: 0,
+          status: 'PROCESSING',
+          expireAt: queueInfo.expireAt,
+        };
+      }
 
-    if (queueInfo.status === 'WAITING') {
-      const previousWaitingQueues =
-        await this.waitingQueueRepository.findLessThanId(queueInfo.id);
+      if (queueInfo.status === 'EXPIRED') {
+        return {
+          waitingNumber: Infinity,
+          remainingTime: Infinity,
+          status: 'EXPIRED',
+        };
+      }
 
-      // 대기 순번 계산: 내 ID - 이전 대기열 중 완료된 대기열 수
+      const previousQueues = await this.waitingQueueRepository.findLessThanId(
+        queueInfo.id,
+      );
+
       const waitingNumber =
         queueInfo.id -
-        previousWaitingQueues.filter((queue) => queue.status !== 'WAITING')
-          .length;
+        previousQueues.filter((q) => q.status !== 'WAITING').length;
 
-      const updatePeriod = 5; // 5분
+      const updatePeriod = 5;
       const numberOfProcess =
         this.configService.get<number>('NUMBER_OF_PROCESS');
-
-      // 예상 대기 시간 = (대기 순번 / 업데이트 주기) * 처리 프로세스 수 (분)
       const remainingTime =
-        Number(waitingNumber / updatePeriod) * numberOfProcess;
+        Math.floor(waitingNumber / updatePeriod) * numberOfProcess;
 
       return { waitingNumber, remainingTime, status: 'WAITING' };
-    }
+    });
+  }
+
+  async expireToken(token: string): Promise<void> {
+    const decodedToken = this.verifyToken(token);
+
+    await this.dataSource.transaction(async (manager) => {
+      const queueInfo = await this.waitingQueueRepository.findByUUIDWithLock(
+        manager,
+        decodedToken.uuid,
+      );
+
+      if (!queueInfo) {
+        throw new Error('Queue information not found');
+      }
+
+      if (queueInfo.status === 'WAITING') {
+        await this.waitingQueueRepository.updateQueueStatus(
+          manager,
+          queueInfo,
+          'EXPIRED',
+        );
+      }
+    });
   }
 
   async generateToken(): Promise<string> {
@@ -80,63 +104,47 @@ export class WaitingQueueService {
       uuid: uuidv4(),
       createdAt: new Date(),
       status: 'WAITING',
-      expireAt: null,
-      activatedAt: null,
     };
 
-    await this.waitingQueueRepository.createWaitingQueue(queueInfo);
+    await this.waitingQueueRepository.createWaitingQueue(
+      queueInfo as WaitingQueue,
+    );
     return jwt.sign(queueInfo, secretKey, { expiresIn });
   }
 
-  async expireToken(token: string): Promise<void> {
-    const decodedToken = this.verifyToken(token);
-    const queueInfo = await this.waitingQueueRepository.findByUUID(
-      decodedToken.uuid,
-    );
-
-    if (!queueInfo) {
-      throw new Error('Queue information not found');
-    }
-
-    if (queueInfo.status === 'WAITING') {
-      queueInfo.status = 'EXPIRED';
-      await this.waitingQueueRepository.updateWaitingQueue(
-        queueInfo.uuid,
-        queueInfo,
-      );
-    }
-  }
-
-  private verifyToken(token: string): WaitingQueue {
-    try {
-      const secretKey = this.configService.get<string>('JWT_SECRET');
-      return jwt.verify(token, secretKey) as WaitingQueue;
-    } catch (e) {
-      throw new Error('Token is invalid');
-    }
-  }
-
-  // 5분마다 실행
   @Cron('0 */5 * * * *')
   async updateTokenStatus() {
     const numberOfProcess = this.configService.get<number>('NUMBER_OF_PROCESS');
-    const waitingQueues =
-      await this.waitingQueueRepository.findByStatus('WAITING');
 
-    for (let i = 0; i < waitingQueues.length; i++) {
-      // 통과 수 제한
-      if (i < numberOfProcess) {
+    await this.dataSource.transaction(async (manager) => {
+      const waitingQueues =
+        await this.waitingQueueRepository.findWaitingWithLock(manager);
+      if (!waitingQueues || waitingQueues.length === 0) {
+        throw new BadRequestException('No waiting queues found');
+      }
+      for (
+        let i = 0;
+        i < Math.min(numberOfProcess, waitingQueues.length);
+        i++
+      ) {
         const now = dayjs();
-        waitingQueues[i].status = 'PROCESSING';
-        waitingQueues[i].activatedAt = now.toDate();
-        waitingQueues[i].expireAt = now.add(5, 'minute').toDate();
-
-        // DB UPDATE
-        await this.waitingQueueRepository.updateWaitingQueue(
-          waitingQueues[i].uuid,
+        await this.waitingQueueRepository.updateQueueStatus(
+          manager,
           waitingQueues[i],
+          'PROCESSING',
+          now.toDate(),
+          now.add(5, 'minute').toDate(),
         );
       }
+    });
+  }
+
+  private verifyToken(token: string): WaitingQueue {
+    const secretKey = this.configService.get<string>('JWT_SECRET');
+    try {
+      return jwt.verify(token, secretKey) as WaitingQueue;
+    } catch {
+      throw new Error('Token is invalid');
     }
   }
 }
