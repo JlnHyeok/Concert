@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   WAITING_QUEUE_REPOSITORY,
@@ -7,9 +7,10 @@ import {
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { Cron } from '@nestjs/schedule';
-import dayjs from 'dayjs';
 import { DataSource } from 'typeorm';
 import { WaitingQueue } from '../model/entity/waiting-queue.entity';
+import { BusinessException } from '../../../common/exception/business-exception';
+import { WAITING_QUEUE_ERROR_CODES } from '../error/waiting-queue.error';
 
 @Injectable()
 export class WaitingQueueService {
@@ -33,9 +34,11 @@ export class WaitingQueueService {
         manager,
         decodedToken.uuid,
       );
-
       if (!queueInfo) {
-        throw new Error('Queue information not found');
+        throw new BusinessException(
+          WAITING_QUEUE_ERROR_CODES.QUEUE_INFO_NOT_FOUND,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       if (queueInfo.status === 'PROCESSING') {
@@ -83,7 +86,10 @@ export class WaitingQueueService {
       );
 
       if (!queueInfo) {
-        throw new Error('Queue information not found');
+        throw new BusinessException(
+          WAITING_QUEUE_ERROR_CODES.QUEUE_INFO_NOT_FOUND,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       if (queueInfo.status === 'WAITING') {
@@ -97,13 +103,14 @@ export class WaitingQueueService {
   }
 
   async generateToken(): Promise<string> {
-    const secretKey = this.configService.get<string>('JWT_SECRET');
-    const expiresIn = this.configService.get<string>('JWT_EXPIRED_IN');
-
+    const secretKey = this.configService.get<string>('JWT_SECRET', 'secret');
+    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '5m');
     const queueInfo: Partial<WaitingQueue> = {
       uuid: uuidv4(),
       createdAt: new Date(),
       status: 'WAITING',
+      activatedAt: null,
+      expireAt: null,
     };
 
     await this.waitingQueueRepository.createWaitingQueue(
@@ -120,31 +127,35 @@ export class WaitingQueueService {
       const waitingQueues =
         await this.waitingQueueRepository.findWaitingWithLock(manager);
       if (!waitingQueues || waitingQueues.length === 0) {
-        throw new BadRequestException('No waiting queues found');
+        return;
       }
+
       for (
         let i = 0;
         i < Math.min(numberOfProcess, waitingQueues.length);
         i++
       ) {
-        const now = dayjs();
+        const now = new Date();
         await this.waitingQueueRepository.updateQueueStatus(
           manager,
           waitingQueues[i],
           'PROCESSING',
-          now.toDate(),
-          now.add(5, 'minute').toDate(),
+          now,
+          new Date(now.setMinutes(now.getMinutes() + 5)),
         );
       }
     });
   }
 
-  private verifyToken(token: string): WaitingQueue {
+  verifyToken(token: string): WaitingQueue {
     const secretKey = this.configService.get<string>('JWT_SECRET');
     try {
       return jwt.verify(token, secretKey) as WaitingQueue;
     } catch {
-      throw new Error('Token is invalid');
+      throw new BusinessException(
+        WAITING_QUEUE_ERROR_CODES.TOKEN_INVALID,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
   }
 }

@@ -4,17 +4,19 @@ import {
   Param,
   Post,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
-import { ReservationFacade } from '../../application/facades/reservation.facade';
+import { ReservationFacade } from '../../../application/facades/reservation/reservation.facade';
 import {
   PaymentReservationRequestDto,
   ReservationSeatRequestDto,
-} from '../dto/request/reservation.request.dto';
+} from '../../dto/request/reservation.request.dto';
 import {
   PaymentResponseDto,
   ReservationResponseDto,
-} from '../dto/response/reservation.response.dto';
+} from '../../dto/response/reservation.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../common';
 
 @ApiTags('reservation')
 @Controller('reservation')
@@ -22,6 +24,7 @@ export class ReservationController {
   constructor(private readonly reservationFacade: ReservationFacade) {}
 
   @Post('/seat')
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 201, type: ReservationResponseDto })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async reservationSeat(
@@ -29,15 +32,6 @@ export class ReservationController {
     @Param() params: ReservationSeatRequestDto,
   ): Promise<ReservationResponseDto> {
     const { userId, concertId, performanceDate, seatNumber } = params;
-
-    // 유효성 검사 추가
-    if (!token) {
-      throw new BadRequestException('Missing authorization token');
-    }
-
-    if (!userId || !concertId || !performanceDate || !seatNumber) {
-      throw new BadRequestException('Missing required parameters');
-    }
 
     return await this.reservationFacade.createReservation({
       token,
@@ -49,6 +43,7 @@ export class ReservationController {
   }
 
   @Post('/payment')
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 201, type: PaymentResponseDto })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async createPayment(
@@ -56,15 +51,6 @@ export class ReservationController {
     @Param() params: PaymentReservationRequestDto,
   ): Promise<PaymentResponseDto> {
     const { userId, seatId } = params;
-
-    // 유효성 검사 추가
-    if (!token) {
-      throw new BadRequestException('Missing authorization token');
-    }
-
-    if (!userId || !seatId) {
-      throw new BadRequestException('Missing required parameters');
-    }
 
     return await this.reservationFacade.createPayment(token, userId, seatId);
   }
