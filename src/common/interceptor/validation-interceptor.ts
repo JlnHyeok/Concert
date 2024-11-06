@@ -4,9 +4,12 @@ import {
   ExecutionContext,
   CallHandler,
   BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { BusinessException } from '../exception/business-exception';
+import { COMMON_ERRORS } from '../constants/error';
 
 @Injectable()
 export class ValidationInterceptor implements NestInterceptor {
@@ -17,9 +20,9 @@ export class ValidationInterceptor implements NestInterceptor {
         (error) => {
           if (error instanceof BadRequestException) {
             // 에러를 처리
-            throw new BadRequestException(
-              'Validation failed',
-              error.getResponse(),
+            throw new BusinessException(
+              COMMON_ERRORS.BAD_REQUEST,
+              HttpStatus.BAD_REQUEST,
             );
           }
         },

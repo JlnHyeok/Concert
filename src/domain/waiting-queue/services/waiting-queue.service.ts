@@ -28,7 +28,7 @@ export class WaitingQueueService {
     expireAt?: Date;
   }> {
     const decodedToken = this.verifyToken(token);
-
+    this.updateTokenStatus();
     return await this.dataSource.transaction(async (manager) => {
       const queueInfo = await this.waitingQueueRepository.findByUUIDWithLock(
         manager,

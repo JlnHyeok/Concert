@@ -43,7 +43,10 @@ export class ReservationFacade {
       );
     }
 
-    if (new Date(tokenInfo.expireAt).getTime() > new Date().getTime()) {
+    let expired = new Date(tokenInfo.expireAt);
+    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
+
+    if (parsedExpired.toISOString() < new Date().toISOString()) {
       throw new BusinessException(
         COMMON_ERRORS.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED,
@@ -52,12 +55,12 @@ export class ReservationFacade {
 
     const seats = await this.concertService.getSeats(
       concertId,
-      performanceDate.toISOString(),
+      performanceDate,
     );
 
     const seat = seats.find((s) => s.seatNumber === seatNumber);
 
-    if (seat.status !== 'AVAILABLE')
+    if (seat?.status !== 'AVAILABLE')
       throw new BusinessException(
         COMMON_ERRORS.NOT_FOUND,
         HttpStatus.NOT_FOUND,
@@ -73,7 +76,6 @@ export class ReservationFacade {
   async createPayment(token: string, userId: number, seatId: number) {
     // await this.checkActivatedToken(token);
     const tokenInfo = await this.waitingQueueService.checkWaitingQueue(token);
-
     if (tokenInfo.status !== 'PROCESSING') {
       throw new BusinessException(
         COMMON_ERRORS.UNAUTHORIZED,
@@ -81,7 +83,10 @@ export class ReservationFacade {
       );
     }
 
-    if (new Date(tokenInfo.expireAt).getTime() > new Date().getTime()) {
+    let expired = new Date(tokenInfo.expireAt);
+    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
+
+    if (parsedExpired.toISOString() < new Date().toISOString()) {
       throw new BusinessException(
         COMMON_ERRORS.UNAUTHORIZED,
         HttpStatus.UNAUTHORIZED,
@@ -92,7 +97,7 @@ export class ReservationFacade {
 
     const reservations = await this.reservationService.getReservation(userId);
 
-    const reservation = reservations.find((r) => r.seat.id === seatId);
+    const reservation = reservations.find((r) => r?.seat?.id === seatId);
 
     await this.userService.usePoint(userId, seat.price);
     const payment = await this.reservationService.createPayment(
@@ -111,9 +116,9 @@ export class ReservationFacade {
   async releaseHoldSeat() {
     const seats = await this.concertService.getAllSeats();
     const holdSeats = seats.filter((seat) => seat.status === 'HOLD');
-
+    const now = new Date();
     for (const seat of holdSeats) {
-      if (dayjs(seat.releaseAt).isBefore(dayjs())) {
+      if (new Date(seat.releaseAt) <= now) {
         seat.status = 'AVAILABLE';
         await this.concertService.updateSeat(seat.id, seat);
       }

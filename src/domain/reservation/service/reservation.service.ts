@@ -30,8 +30,7 @@ export class ReservationService {
   async getReservation(userId: number) {
     return this.dataSource.transaction(async (manager) => {
       const reservations =
-        await this.reservationRepository.findByUserIdWithLock(manager, userId);
-
+        await this.reservationRepository.findByUserId(userId);
       if (!reservations || reservations.length == 0) {
         throw new BusinessException(
           RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
@@ -42,6 +41,13 @@ export class ReservationService {
   }
 
   async createReservation(userId: number, seatId: number) {
+    const reservations = await this.reservationRepository.findBySeatId(seatId);
+    if (reservations.length > 0) {
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.SEAT_ALREADY_RESERVED,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
     const reservation = await this.reservationRepository.createReservation(
       userId,
       seatId,

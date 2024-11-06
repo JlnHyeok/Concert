@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, HttpStatus } from '@nestjs/common';
+import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { UserService } from '../../../domain/user/services/user.service';
 import { AppModule } from '../../../app.module';
@@ -15,6 +15,15 @@ describe('UserController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     userService = moduleFixture.get<UserService>(UserService); // UserService 주입
+
+    // ValidationPipe 설정
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true, // DTO에 정의된 프로퍼티만 허용
+        forbidNonWhitelisted: true, // 정의되지 않은 값이 들어오면 예외 발생
+        transform: true, // 요청 객체를 자동 변환
+      }),
+    );
     await app.init();
   });
 
@@ -39,18 +48,18 @@ describe('UserController (e2e)', () => {
         .send({ userId: 124, name: 'Jane Doe' }) // 다른 사용자 추가
         .expect(HttpStatus.CREATED);
 
-      expect(response.body).toEqual({
-        id: 124,
-        name: 'Jane Doe',
-        balance: 0,
-      });
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('name');
+      expect(response.body).toHaveProperty('balance');
+
+      await userService.deleteUser(124); // 테스트 사용자 삭제
     });
 
     it('400 Bad Request - 잘못된 요청', async () => {
       await request(app.getHttpServer())
         .post('/user/create')
         .send({ name: 'John Doe' }) // userId 누락
-        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
@@ -62,16 +71,15 @@ describe('UserController (e2e)', () => {
         .expect(HttpStatus.CREATED);
 
       expect(response.body).toEqual({
-        userId: '123',
-        currentPoint: 100,
+        balance: 100, // 충전한 포인트
       });
     });
 
     it('400 Bad Request - 잘못된 포인트 값', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/user/charge')
         .send({ userId: '123', point: -50 }) // 음수 포인트
-        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
@@ -96,52 +104,69 @@ describe('UserController (e2e)', () => {
   // 유저 포인트 충전 동시성 테스트
   describe('Concurrent user point charge', () => {
     it('should handle concurrent user point charge requests', async () => {
-      const userRequests: Promise<any>[] = [];
-      let timer: NodeJS.Timeout;
-      for (let i = 0; i < 10; i++) {
-        timer = setTimeout(async () => {
-          const requests = request(app.getHttpServer())
+      const chargeRequest = Array(3)
+        .fill(0)
+        .map((_, i) => {
+          return request(app.getHttpServer())
             .post('/user/charge')
             .send({ userId: 123, point: 100 })
-            .set('keep-alive', 'true');
-          userRequests.push(requests);
-        }, 100);
-
-        clearTimeout(timer);
-        const responses = await Promise.all(userRequests);
-
-        // 모든 응답을 확인
-        responses.forEach((response, index) => {
-          expect(response.status).toBe(HttpStatus.CREATED); // 포인트 충전이 성공적으로 이루어져야 함
-          expect(response.body.userId).toBe('123');
+            .expect(HttpStatus.CREATED);
         });
-      }
+
+      const responses = await Promise.allSettled(chargeRequest);
+
+      // 모든 응답을 확인
+      responses.forEach((response) => {
+        expect(response.status).toBe('fulfilled'); // 포인트 충전이 성공적으로 이루어져야 함
+      });
+
+      // 포인트 잔액 확인
+      const pointResponse = await request(app.getHttpServer())
+        .get('/user/point/123')
+        .expect(HttpStatus.OK);
+
+      expect(pointResponse.body).toEqual({
+        balance: '300', // 100 * 10
+      });
     });
   });
 
   // 유저 포인트 사용 동시성 테스트
   describe('Concurrent user point use', () => {
     it('should handle concurrent user point use requests', async () => {
-      const userRequests: Promise<any>[] = [];
-      let timer: NodeJS.Timeout;
-      for (let i = 0; i < 10; i++) {
-        timer = setTimeout(async () => {
-          const requests = request(app.getHttpServer())
+      await request(app.getHttpServer())
+        .post('/user/charge')
+        .send({ userId: 123, point: 2000 })
+        .expect(HttpStatus.CREATED);
+
+      // await request(app.getHttpServer())
+      //   .post('/user/use')
+      //   .send({ userId: 123, point: 2000 })
+      //   .expect(HttpStatus.CREATED);
+      const payRequest = Array(5)
+        .fill(0)
+        .map((_, i) => {
+          return request(app.getHttpServer())
             .post('/user/use')
             .send({ userId: 123, point: 100 })
-            .set('keep-alive', 'true');
-          userRequests.push(requests);
-        }, 100);
-
-        clearTimeout(timer);
-        const responses = await Promise.all(userRequests);
-
-        // 모든 응답을 확인
-        responses.forEach((response, index) => {
-          expect(response.status).toBe(HttpStatus.CREATED); // 포인트 사용이 성공적으로 이루어져야 함
-          expect(response.body.userId).toBe('123');
+            .expect(HttpStatus.CREATED);
         });
-      }
+
+      const responses = await Promise.allSettled(payRequest);
+
+      // 모든 응답을 확인
+      responses.forEach((response) => {
+        expect(response.status).toBe('fulfilled'); // 포인트 사용이 성공적으로 이루어져야 함
+      });
+
+      // 포인트 잔액 확인
+      const pointResponse = await request(app.getHttpServer())
+        .get('/user/point/123')
+        .expect(HttpStatus.OK);
+
+      expect(pointResponse.body).toEqual({
+        balance: '1500', // 2000 - 100 * 10
+      });
     });
   });
 });

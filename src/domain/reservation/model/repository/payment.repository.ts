@@ -4,6 +4,8 @@ import { Payment } from '../entity/payment.entity';
 export const PAYMENT_REPOSITORY = 'PAYMENT_REPOSITORY';
 
 export interface IPaymentRepository {
+  findAll(): Promise<Payment[]>;
+
   createPayment(
     reservationId: number,
     price: number,

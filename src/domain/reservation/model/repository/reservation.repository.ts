@@ -5,6 +5,7 @@ export const RESERVATION_REPOSITORY = 'RESERVATION_REPOSITORY';
 
 export interface IReservationRepository {
   findById(id: number): Promise<Reservation>;
+  findBySeatId(seatId: number): Promise<Reservation[]>;
   findByUserId(userId: number): Promise<Reservation[]>;
   createReservation(
     userId: number,

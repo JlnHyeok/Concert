@@ -51,7 +51,6 @@ describe('App E2E Tests', () => {
         expect(response.body.message).toBe('Token is invalid');
 
         let a = await request(app.getHttpServer()).post('/waiting-queue/issue');
-        console.log(a.body);
       });
 
       it('should handle concurrent reservation requests', async () => {

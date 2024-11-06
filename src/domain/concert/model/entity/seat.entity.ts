@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { PerformanceDate } from './performance-date.entity';
 import { Concert } from './concert.entity';
 
 @Entity()
@@ -10,18 +9,17 @@ export class Seat {
   @Column()
   concertId: number;
 
-  @ManyToOne(() => PerformanceDate, (performanceDate) => performanceDate.seats)
-  @Column()
-  performanceDate: Date;
-
   @Column()
   seatNumber: number;
 
   @Column()
-  status: 'AVAILABLE' | 'RESERVED' | 'HOLD';
+  performanceDate: Date;
 
   @Column()
-  releaseAt: Date;
+  status: 'AVAILABLE' | 'RESERVED' | 'HOLD';
+
+  @Column({ nullable: true })
+  releaseAt: Date | null;
 
   @Column({ type: 'decimal' })
   price: number;

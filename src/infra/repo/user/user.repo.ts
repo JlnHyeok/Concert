@@ -14,7 +14,19 @@ export class UserRepository implements IUserRepository {
   async findById(id: number): Promise<User> {
     return await this.userRepository.findOne({
       where: { id },
+      relations: ['reservations'],
     });
+  }
+
+  async findByUserIdWithLock(
+    userId: number,
+    manager: EntityManager,
+  ): Promise<User> {
+    return await manager
+      .createQueryBuilder(User, 'user')
+      .setLock('pessimistic_write')
+      .where('user.id = :id', { id: userId })
+      .getOne();
   }
 
   async createUser(userId: number, name: string): Promise<User> {

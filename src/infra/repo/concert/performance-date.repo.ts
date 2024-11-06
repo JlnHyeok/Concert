@@ -19,9 +19,14 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
   }
 
   async createPerformanceDate(
-    performanceDate: PerformanceDate,
+    concertId: number,
+    performanceDate: Date,
   ): Promise<PerformanceDate> {
-    return await this.performanceDateRepository.save(performanceDate);
+    let createPerformanceDate = {
+      concertId,
+      performanceDate,
+    };
+    return await this.performanceDateRepository.save(createPerformanceDate);
   }
 
   async updatePerformanceDate(
@@ -32,5 +37,8 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
 
   async deletePerformanceDate(id: number): Promise<void> {
     await this.performanceDateRepository.delete(id);
+  }
+  async deletePerformanceDateByConcertId(id: number): Promise<void> {
+    await this.performanceDateRepository.delete({ concertId: id });
   }
 }

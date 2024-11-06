@@ -22,6 +22,7 @@ describe('ConcertService', () => {
   let concertRepository: IConcertRepository;
   let seatRepository: ISeatRepository;
   let performanceDateRepository: IPerformanceDateRepository;
+  let performanceDate = new Date('2024-10-18');
   let dataSource: DataSource;
 
   const mockSeat: Seat = {
@@ -38,9 +39,8 @@ describe('ConcertService', () => {
   const mockPerformanceDate: PerformanceDate = {
     id: 1,
     concertId: 1,
-    performanceDate: new Date('2024-10-18'),
+    performanceDate,
     concert: null,
-    seats: [],
   };
 
   const mockConcertRepository = {
@@ -125,7 +125,7 @@ describe('ConcertService', () => {
         .spyOn(seatRepository, 'findByConcertAndDate')
         .mockResolvedValue([mockSeat]);
 
-      const seats = await service.getSeats(1, '2024-10-18');
+      const seats = await service.getSeats(1, performanceDate);
       expect(seats).toEqual([mockSeat]);
       expect(seatRepository.findByConcertAndDate).toHaveBeenCalledWith(
         1,
@@ -137,7 +137,7 @@ describe('ConcertService', () => {
     it('should throw NotFoundException if no seats found', async () => {
       jest.spyOn(seatRepository, 'findByConcertAndDate').mockResolvedValue([]);
 
-      await expect(service.getSeats(1, '2024-10-18')).rejects.toThrow(
+      await expect(service.getSeats(1, performanceDate)).rejects.toThrow(
         CONCERT_ERROR_CODES.SEATS_NOT_FOUND.message,
       );
     });

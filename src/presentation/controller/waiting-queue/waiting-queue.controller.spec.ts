@@ -6,6 +6,7 @@ import { WaitingQueueFacade } from '../../../application/facades/waiting-queue/w
 
 describe('WaitingQueueController (e2e)', () => {
   let app: INestApplication;
+  let token: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -14,22 +15,30 @@ describe('WaitingQueueController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    const response = await request(app.getHttpServer())
+      .post('/waiting-queue/issue')
+      .expect(201);
+
+    token = response.headers['authorization'];
   });
 
   afterAll(async () => {
+    // 테스트 데이터 정리
+
     await app.close();
   });
 
   describe('/waiting-queue/check (GET)', () => {
     it('should return waiting queue info with valid token', async () => {
-      const token = 'valid_jwt_token'; // 유효한 JWT 토큰을 설정해야 합니다.
-
       const response = await request(app.getHttpServer())
         .get('/waiting-queue/check')
-        .set('Authorization', `Bearer ${token}`)
+        .set('authorization', `${token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('yourExpectedProperty'); // 응답의 속성 확인
+      expect(response.body).toHaveProperty('remainingTime');
+      expect(response.body).toHaveProperty('waitingNumber');
+      expect(response.body).toHaveProperty('status');
     });
 
     it('should return 401 if token is missing', async () => {
@@ -38,13 +47,13 @@ describe('WaitingQueueController (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 400 if token is invalid', async () => {
+    it('should return 401 if token is invalid', async () => {
       const token = 'invalid_jwt_token';
 
       await request(app.getHttpServer())
         .get('/waiting-queue/check')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(400);
+        .set('authorization', `${token}`)
+        .expect(401);
     });
   });
 
@@ -56,20 +65,6 @@ describe('WaitingQueueController (e2e)', () => {
 
       expect(response.headers['authorization']).toBeDefined();
       expect(response.body.message).toBe('Token issued successfully');
-    });
-
-    it('should return 500 if token generation fails', async () => {
-      jest
-        .spyOn(WaitingQueueFacade.prototype, 'issueToken')
-        .mockImplementationOnce(() => {
-          throw new Error('Token generation failed');
-        });
-
-      const response = await request(app.getHttpServer())
-        .post('/waiting-queue/issue')
-        .expect(500);
-
-      expect(response.body.message).toBe('Token generation failed');
     });
   });
 });

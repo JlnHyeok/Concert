@@ -1,8 +1,12 @@
 import { Payment } from '../../../domain/reservation/model/entity/payment.entity';
-import { EntityManager, Repository } from 'typeorm';
+import {
+  EntityManager,
+  OptimisticLockVersionMismatchError,
+  Repository,
+} from 'typeorm';
 import { IPaymentRepository } from '../../../domain/reservation/model/repository/payment.repository';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Reservation } from 'src/domain/reservation/model/entity/reservation.entity';
+import { ConflictException } from '@nestjs/common';
 
 export class PaymentRepository implements IPaymentRepository {
   constructor(
@@ -10,16 +14,28 @@ export class PaymentRepository implements IPaymentRepository {
     private readonly paymentRepository: Repository<Payment>,
   ) {}
 
+  async findAll(): Promise<Payment[]> {
+    return await this.paymentRepository.find({
+      relations: ['reservation', 'reservation.user'],
+    });
+  }
+
   async createPayment(
     reservationId: number,
     price: number,
     createdAt: Date,
   ): Promise<Payment> {
-    return await this.paymentRepository.save({
-      reservationId,
-      price,
-      createdAt,
-    });
+    try {
+      return await this.paymentRepository.save({
+        reservationId,
+        price,
+        createdAt,
+      });
+    } catch (error) {
+      if (error instanceof OptimisticLockVersionMismatchError) {
+        throw new ConflictException('Optimistic lock error');
+      }
+    }
   }
 
   // 추가: 예약과 연관된 결제를 비관적 락으로 생성하는 메서드

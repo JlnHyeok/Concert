@@ -27,6 +27,14 @@ export class ChargePointResponseDto {
   balance: number;
 }
 
+export class UsePointResponseDto {
+  @ApiProperty({ description: '포인트' })
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  @IsNotEmpty()
+  balance: number;
+}
+
 export class CheckPointResponseDto {
   @ApiProperty({ description: '포인트' })
   @Transform(({ value }) => Number(value))

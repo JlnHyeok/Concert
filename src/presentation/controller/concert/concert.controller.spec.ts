@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../app.module'; // 실제 AppModule 경로
 import { DataSource } from 'typeorm';
@@ -8,6 +8,9 @@ describe('ConcertController (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let concertId: string;
+  let performanceId: string;
+  let performanceDate = '2024-10-31';
+  let createdSeatRes: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -16,28 +19,57 @@ describe('ConcertController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     dataSource = moduleFixture.get<DataSource>(DataSource); // TypeORM DataSource 인스턴스 가져오기
+
+    // ValidationPipe 설정
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true, // DTO에 정의된 프로퍼티만 허용
+        forbidNonWhitelisted: true, // 정의되지 않은 값이 들어오면 예외 발생
+        transform: true, // 요청 객체를 자동 변환
+      }),
+    );
+
     await app.init();
-
-    // 테스트용 데이터 삽입
-    const concertInsertResult = await dataSource.query(`
-      INSERT INTO concert (title) VALUES ('Test Concert') RETURNING id;
-    `);
-    concertId = concertInsertResult[0].id;
-
-    await dataSource.query(`
-      INSERT INTO concert_schedule (concert_id, date, available_seats) 
-      VALUES (${concertId}, '2024-10-30', 100),
-             (${concertId}, '2024-10-31', 50);
-    `);
   });
 
   afterAll(async () => {
-    // 테스트 데이터 정리
-    await dataSource.query(
-      `DELETE FROM concert_schedule WHERE concert_id = ${concertId}`,
-    );
-    await dataSource.query(`DELETE FROM concert WHERE id = ${concertId}`);
     await app.close();
+  });
+
+  beforeEach(async () => {
+    // 테스트용 데이터 삽입
+    const createConcertRes = await request(app.getHttpServer())
+      .post('/concert/create')
+      .send({
+        concertName: 'TestConcert',
+        location: 'Test Location',
+      })
+      .expect(201);
+
+    concertId = createConcertRes.body.id;
+
+    const createPerformanceDateRes = await request(app.getHttpServer())
+      .post('/concert/schedule/create')
+      .send({
+        concertId,
+        performanceDate: performanceDate,
+      });
+
+    performanceId = createPerformanceDateRes.body.id;
+
+    createdSeatRes = await request(app.getHttpServer())
+      .post('/concert/seat/create')
+      .send({
+        concertId,
+        performanceDate,
+        seatNumber: 1,
+        price: 10000,
+      });
+  });
+
+  afterEach(async () => {
+    // 테스트 데이터 정리
+    await request(app.getHttpServer()).delete(`/concert/delete/${concertId}`);
   });
 
   describe('/concert/schedule/:concertId (GET)', () => {
@@ -47,8 +79,11 @@ describe('ConcertController (e2e)', () => {
         .expect(200);
 
       expect(response.body).toEqual([
-        { date: '2024-10-30', availableSeats: 100 },
-        { date: '2024-10-31', availableSeats: 50 },
+        {
+          id: performanceId,
+          concertId,
+          performanceDate: `${new Date(performanceDate).toISOString()}`,
+        },
       ]);
     });
 
@@ -61,26 +96,17 @@ describe('ConcertController (e2e)', () => {
 
   describe('/concert/seat/:concertId/:performanceDate (GET)', () => {
     it('should return the available seats for the specified date', async () => {
-      // 공연 좌석 정보 삽입
-      await dataSource.query(`
-        INSERT INTO concert_seat (concert_id, seat_number, status, date) 
-        VALUES (${concertId}, 'A1', 'available', '2024-10-30'),
-               (${concertId}, 'A2', 'reserved', '2024-10-30');
-      `);
-
       const response = await request(app.getHttpServer())
-        .get(`/concert/seat/${concertId}/2024-10-30`)
+        .get(`/concert/seat/${concertId}/${performanceDate}`)
         .expect(200);
 
       expect(response.body).toEqual([
-        { seatNumber: 'A1', status: 'available' },
-        { seatNumber: 'A2', status: 'reserved' },
+        {
+          ...createdSeatRes.body,
+          price: createdSeatRes.body.price.toString(),
+          releaseAt: null,
+        },
       ]);
-
-      // 테스트 종료 후 좌석 정보 삭제
-      await dataSource.query(`
-        DELETE FROM concert_seat WHERE concert_id = ${concertId} AND date = '2024-10-30';
-      `);
     });
 
     it('should return 400 Bad Request for invalid parameters', async () => {

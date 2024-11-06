@@ -16,14 +16,32 @@ export class BalanceRepository implements IBalanceRepository {
     });
   }
 
+  async findByUserIdWithLock(
+    userId: number,
+    manager: EntityManager,
+  ): Promise<Balance> {
+    return await manager
+      .createQueryBuilder(Balance, 'balance')
+      .setLock('pessimistic_write')
+      .where('balance.userId = :userId', { userId: userId })
+      .getOne();
+  }
+
   async createBalance(userId: number): Promise<Balance> {
-    return await this.balanceRepository.save({ id: userId, balance: 0 });
+    return await this.balanceRepository.save({ userId: userId, balance: 0 });
   }
 
   async updateBalance(
     updateBalance: Balance,
     manager: EntityManager,
   ): Promise<Balance> {
-    return await manager.save(updateBalance); // Use manager for transaction context
+    return await manager
+      .createQueryBuilder()
+      .setLock('pessimistic_write')
+      .update(Balance)
+      .set({ balance: updateBalance.balance })
+      .where('userId = :userId', { userId: updateBalance.userId })
+      .execute()
+      .then(() => updateBalance);
   }
 }
