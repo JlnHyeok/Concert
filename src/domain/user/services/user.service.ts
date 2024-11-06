@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -14,6 +9,9 @@ import {
 } from '../model/repository/balance.repository';
 import { User } from '../model/entity/user.entity';
 import { DataSource, EntityManager } from 'typeorm';
+import { BusinessException } from '../../../common/exception/business-exception';
+import { USER_ERROR_CODES } from '../error/user.error';
+import { Balance } from '../model/entity/balance.entity';
 
 @Injectable()
 export class UserService {
@@ -27,6 +25,11 @@ export class UserService {
     private readonly dataSource: DataSource, // Inject DataSource for transactions
   ) {}
 
+  async createUser(userId: number, name: string): Promise<User> {
+    await this.balanceRepository.createBalance(userId);
+    return await this.userRepository.createUser(userId, name);
+  }
+
   async chargePoint(
     userId: number,
     point: number,
@@ -36,7 +39,7 @@ export class UserService {
     await manager.transaction(
       async (transactionalEntityManager: EntityManager) => {
         const balance = await this.balanceRepository.findByUserId(userId);
-        if (!balance) throw new NotFoundException('Balance not found');
+        this.validateBalance(balance);
 
         balance.balance += point;
         await this.balanceRepository.updateBalance(
@@ -45,7 +48,7 @@ export class UserService {
         );
 
         const user = await this.userRepository.findById(userId);
-        if (!user) throw new NotFoundException('User not found');
+        this.validateUser(user);
 
         user.balance += point;
         await this.userRepository.updateUser(
@@ -67,9 +70,13 @@ export class UserService {
     await manager.transaction(
       async (transactionalEntityManager: EntityManager) => {
         const user = await this.userRepository.findById(userId);
-        if (!user) throw new NotFoundException('User not found');
+        this.validateUser(user);
 
-        if (user.balance < point) throw new Error('Insufficient balance');
+        if (user.balance < point)
+          throw new BusinessException(
+            USER_ERROR_CODES.BALANCE_INSUFFICIENT,
+            HttpStatus.BAD_REQUEST,
+          );
 
         user.balance -= point;
         await this.userRepository.updateUser(
@@ -79,7 +86,7 @@ export class UserService {
         );
 
         const balance = await this.balanceRepository.findByUserId(userId);
-        if (!balance) throw new NotFoundException('Balance not found');
+        this.validateBalance(balance);
 
         balance.balance -= point;
         await this.balanceRepository.updateBalance(
@@ -92,14 +99,36 @@ export class UserService {
 
   async getPoint(userId: number): Promise<{ balance: number }> {
     const user = await this.userRepository.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    this.validateUser(user);
 
     return { balance: user.balance };
   }
 
   async findUserById(id: number): Promise<User> {
     const user = await this.userRepository.findById(id);
-    if (!user) throw new NotFoundException('User not found');
+    this.validateUser(user);
     return user;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await this.userRepository.deleteUser(id);
+  }
+
+  private validateUser(user: User): void {
+    if (!user) {
+      throw new BusinessException(
+        USER_ERROR_CODES.USER_NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private validateBalance(balance: Balance): void {
+    if (!balance) {
+      throw new BusinessException(
+        USER_ERROR_CODES.BALANCE_NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }

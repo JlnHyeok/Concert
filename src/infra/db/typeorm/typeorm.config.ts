@@ -1,13 +1,13 @@
 // src/infra/typeorm.config.ts
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { Concert } from '../domain/concert/model/entity/concert.entity';
-import { PerformanceDate } from '../domain/concert/model/entity/performance-date.entity';
-import { Seat } from '../domain/concert/model/entity/seat.entity';
-import { Payment } from '../domain/reservation/model/entity/payment.entity';
-import { Reservation } from '../domain/reservation/model/entity/reservation.entity';
-import { User } from '../domain/user/model/entity/user.entity';
-import { WaitingQueue } from '../domain/waiting-queue/model/entity/waiting-queue.entity';
+import { Concert } from '../../../domain/concert/model/entity/concert.entity';
+import { PerformanceDate } from '../../../domain/concert/model/entity/performance-date.entity';
+import { Seat } from '../../../domain/concert/model/entity/seat.entity';
+import { Payment } from '../../../domain/reservation/model/entity/payment.entity';
+import { Reservation } from '../../../domain/reservation/model/entity/reservation.entity';
+import { User } from '../../../domain/user/model/entity/user.entity';
+import { WaitingQueue } from '../../../domain/waiting-queue/model/entity/waiting-queue.entity';
 import { DataSource } from 'typeorm';
 
 // NestJs 내부 서비스에서 데이터베이스를 사용하기 위한 설정.

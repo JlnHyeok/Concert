@@ -13,9 +13,9 @@ import {
 } from '../model/repository/performance-date.repository';
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
-import { NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ConcertService } from './consert.service';
+import { CONCERT_ERROR_CODES } from '../error/concert.error';
 
 describe('ConcertService', () => {
   let service: ConcertService;
@@ -113,7 +113,9 @@ describe('ConcertService', () => {
     it('should throw NotFoundException if seat not found', async () => {
       jest.spyOn(seatRepository, 'findById').mockResolvedValue(null);
 
-      await expect(service.getSeat(999)).rejects.toThrow(NotFoundException);
+      await expect(service.getSeat(999)).rejects.toThrow(
+        CONCERT_ERROR_CODES.SEAT_NOT_FOUND.message,
+      );
     });
   });
 
@@ -136,7 +138,7 @@ describe('ConcertService', () => {
       jest.spyOn(seatRepository, 'findByConcertAndDate').mockResolvedValue([]);
 
       await expect(service.getSeats(1, '2024-10-18')).rejects.toThrow(
-        NotFoundException,
+        CONCERT_ERROR_CODES.SEATS_NOT_FOUND.message,
       );
     });
   });
@@ -158,7 +160,7 @@ describe('ConcertService', () => {
         .mockResolvedValue([]);
 
       await expect(service.getAvailableDates(1)).rejects.toThrow(
-        NotFoundException,
+        CONCERT_ERROR_CODES.PERFORMANCE_DATE_NOT_FOUND.message,
       );
     });
   });
@@ -180,7 +182,7 @@ describe('ConcertService', () => {
       jest.spyOn(seatRepository, 'updateSeat').mockResolvedValue(null);
 
       await expect(service.updateSeat(999, mockSeat)).rejects.toThrow(
-        NotFoundException,
+        CONCERT_ERROR_CODES.UPDATE_SEAT_FAILED.message,
       );
     });
   });

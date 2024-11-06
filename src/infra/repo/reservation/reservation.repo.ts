@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { Reservation } from '../../domain/reservation/model/entity/reservation.entity';
-import { IReservationRepository } from '../../domain/reservation/model/repository/reservation.repository';
-import { Repository, EntityManager } from 'typeorm';
+import { Reservation } from '../../../domain/reservation/model/entity/reservation.entity';
+import { EntityManager, Repository } from 'typeorm';
+import { IReservationRepository } from '../../../domain/reservation/model/repository/reservation.repository';
+import { InjectRepository } from '@nestjs/typeorm';
 
-@Injectable()
-export class ReservationRepository
-  extends Repository<Reservation>
-  implements IReservationRepository
-{
+export class ReservationRepository implements IReservationRepository {
+  constructor(
+    @InjectRepository(Reservation)
+    private readonly reservationRepository: Repository<Reservation>,
+  ) {}
   async findById(id: number): Promise<Reservation> {
-    return await this.findOne({ where: { id } });
+    return await this.reservationRepository.findOne({ where: { id } });
   }
 
   async findByUserId(userId: number): Promise<Reservation[]> {
-    return await this.find({ where: { id: userId } });
+    return await this.reservationRepository.find({ where: { id: userId } });
   }
 
   async createReservation(
@@ -21,11 +21,11 @@ export class ReservationRepository
     seatId: number,
     createdAt: Date,
   ): Promise<Reservation> {
-    return await this.save({ userId, seatId, createdAt });
+    return await this.reservationRepository.save({ userId, seatId, createdAt });
   }
 
   async deleteReservation(id: number): Promise<void> {
-    await this.delete(id);
+    await this.reservationRepository.delete(id);
   }
 
   // 비관적 락을 사용한 메서드 추가

@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Balance {
-  @PrimaryGeneratedColumn()
+  @PrimaryColumn()
   userId: number;
 
   @Column({ type: 'decimal', default: 0 })

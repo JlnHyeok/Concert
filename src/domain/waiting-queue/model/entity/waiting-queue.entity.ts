@@ -11,12 +11,12 @@ export class WaitingQueue {
   @Column()
   status: 'WAITING' | 'PROCESSING' | 'EXPIRED';
 
-  @Column()
-  createdAt: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  createdAt: Date | null;
 
-  @Column()
-  activatedAt: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  activatedAt: Date | null;
 
-  @Column()
-  expireAt: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  expireAt: Date | null;
 }

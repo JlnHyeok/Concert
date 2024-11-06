@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   IReservationRepository,
@@ -13,6 +14,8 @@ import {
   PAYMENT_REPOSITORY,
 } from '../model/repository/payment.repository';
 import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
+import { BusinessException } from '../../../common/exception/business-exception';
+import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
 
 @Injectable()
 export class ReservationService {
@@ -29,9 +32,9 @@ export class ReservationService {
       const reservations =
         await this.reservationRepository.findByUserIdWithLock(manager, userId);
 
-      if (!reservations.length) {
-        throw new NotFoundException(
-          `No reservations found for user with ID ${userId}`,
+      if (!reservations || reservations.length == 0) {
+        throw new BusinessException(
+          RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
         );
       }
       return reservations;
@@ -48,10 +51,11 @@ export class ReservationService {
   }
 
   async createPayment(reservationId: number, price: number) {
-    if (price <= 0) {
-      throw new BadRequestException('Price must be greater than zero');
-    }
-
+    if (price < 0)
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.PRICE_INVALID,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     return this.dataSource.transaction(async (manager) => {
       const reservation = await this.reservationRepository.findByIdWithLock(
         manager, // 트랜잭션 매니저 전달
@@ -59,8 +63,8 @@ export class ReservationService {
       );
 
       if (!reservation) {
-        throw new NotFoundException(
-          `Reservation with ID ${reservationId} not found`,
+        throw new BusinessException(
+          RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
         );
       }
 

@@ -1,21 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { Seat } from '../../domain/concert/model/entity/seat.entity';
-import { ISeatRepository } from '../../domain/concert/model/repository/seat.repository';
-import { EntityManager, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Seat } from '../../../domain/concert/model/entity/seat.entity';
+import { ISeatRepository } from '../../../domain/concert/model/repository/seat.repository';
+import { Repository, EntityManager } from 'typeorm';
 
-@Injectable()
-export class SeatRepository
-  extends Repository<Seat>
-  implements ISeatRepository
-{
+export class SeatRepository implements ISeatRepository {
+  constructor(
+    @InjectRepository(Seat)
+    private readonly seatRepository: Repository<Seat>,
+  ) {}
+
   async findById(id: number): Promise<Seat> {
-    return await this.findOne({
+    return await this.seatRepository.findOne({
       where: { id },
     });
   }
 
   async findAll(): Promise<Seat[]> {
-    return await this.find();
+    return await this.seatRepository.find();
   }
 
   async findByConcertAndDate(
@@ -32,7 +33,7 @@ export class SeatRepository
   }
 
   async createSeat(seat: Seat): Promise<Seat> {
-    return await this.save(seat);
+    return await this.seatRepository.save(seat);
   }
 
   async updateSeat(
@@ -50,6 +51,6 @@ export class SeatRepository
   }
 
   async deleteSeat(id: number): Promise<void> {
-    await this.delete(id);
+    await this.seatRepository.delete(id);
   }
 }
