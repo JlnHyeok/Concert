@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  BadRequestException,
-  Post,
-  Body,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Param, Post, Body, Delete, Inject } from '@nestjs/common';
 import {
   CreateConcertRequestDto,
   CreatePerforamnceDateRequestDto,
@@ -18,16 +10,23 @@ import {
   CreateConcertResponseDto,
   CreatePerforamnceDateResponseDto,
   CreateSeatResponseDto,
+  GetAllConcertsResponseDto,
   GetScheduleResponseDto,
   GetSeatsResponseDto,
 } from '../../dto/response/concert.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConcertFacade } from '../../../application/facades/concert/concert.facade';
+import { Get } from '@nestjs/common';
+import Redis from 'ioredis';
 
 @ApiTags('concert')
 @Controller('concert')
 export class ConcertController {
-  constructor(private readonly ConcertFacade: ConcertFacade) {}
+  constructor(
+    private readonly ConcertFacade: ConcertFacade,
+    @Inject(Redis)
+    private readonly redisClient: Redis,
+  ) {}
 
   @Post('create')
   @ApiResponse({ status: 201, description: 'Concert created successfully' })
@@ -36,6 +35,8 @@ export class ConcertController {
     @Body() body: CreateConcertRequestDto,
   ): Promise<CreateConcertResponseDto> {
     const { concertName, location } = body;
+    const cacheKey = 'concerts';
+    await this.redisClient.del(cacheKey);
 
     return await this.ConcertFacade.createConcert(concertName, location);
   }
@@ -50,6 +51,8 @@ export class ConcertController {
     @Body() body: CreatePerforamnceDateRequestDto,
   ): Promise<CreatePerforamnceDateResponseDto> {
     const { concertId, performanceDate } = body;
+    const cacheKey = `concert/schedule/${concertId}`;
+    await this.redisClient.del(cacheKey);
 
     return await this.ConcertFacade.createPerformanceDate(
       concertId,
@@ -66,11 +69,24 @@ export class ConcertController {
     return await this.ConcertFacade.createSeat(body);
   }
 
-  @Get('')
+  @Get()
   @ApiResponse({ status: 200, type: GetScheduleResponseDto, isArray: true })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async getAllConcerts(): Promise<any> {
-    return await this.ConcertFacade.getAllConcerts();
+  async getAllConcerts(): Promise<GetAllConcertsResponseDto[]> {
+    const cacheKey = 'concerts';
+    let responseData = JSON.parse(await this.redisClient.get(cacheKey));
+
+    if (!responseData) {
+      responseData = await this.ConcertFacade.getAllConcerts();
+
+      await this.redisClient.setex(
+        cacheKey,
+        3 * 60000,
+        JSON.stringify(responseData),
+      );
+    }
+
+    return responseData as GetAllConcertsResponseDto[];
   }
 
   @Get('schedule/:concertId')
@@ -80,8 +96,20 @@ export class ConcertController {
     @Param() params: GetScheduleRequestDto,
   ): Promise<GetScheduleResponseDto[]> {
     const { concertId } = params;
+    const cacheKey = `concert/schedule/${concertId}`;
+    let responseData = JSON.parse(await this.redisClient.get(cacheKey));
 
-    return await this.ConcertFacade.getAvailableDates(concertId);
+    if (!responseData) {
+      responseData = await this.ConcertFacade.getAvailableDates(concertId);
+
+      await this.redisClient.setex(
+        cacheKey,
+        3 * 60000,
+        JSON.stringify(responseData),
+      );
+    }
+
+    return responseData as GetScheduleResponseDto[];
   }
 
   @Get('seat/:concertId/:performanceDate')

@@ -1,7 +1,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { PerformanceDate } from '../../../domain/concert/model/entity/performance-date.entity';
 import { IPerformanceDateRepository } from '../../../domain/concert/model/repository/performance-date.repository';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository } from 'typeorm';
 
 export class PerformanceDateRepository implements IPerformanceDateRepository {
   constructor(
@@ -26,6 +26,7 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
       concertId,
       performanceDate,
     };
+
     return await this.performanceDateRepository.save(createPerformanceDate);
   }
 
@@ -35,9 +36,6 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
     return await this.performanceDateRepository.save(updatePerformanceDate);
   }
 
-  async deletePerformanceDate(id: number): Promise<void> {
-    await this.performanceDateRepository.delete(id);
-  }
   async deletePerformanceDateByConcertId(id: number): Promise<void> {
     await this.performanceDateRepository.delete({ concertId: id });
   }
