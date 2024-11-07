@@ -12,6 +12,5 @@ export interface IPerformanceDateRepository {
   updatePerformanceDate(
     performanceDate: PerformanceDate,
   ): Promise<PerformanceDate>;
-  deletePerformanceDate(id: number): Promise<void>;
   deletePerformanceDateByConcertId(id: number): Promise<void>;
 }
