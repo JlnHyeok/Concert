@@ -9,9 +9,10 @@ import { ConcertController } from '../../presentation/controller/concert/concert
 import { ReservationController } from '../../presentation/controller/reservation/reservation.controller';
 import { WaitingQueueController } from '../../presentation/controller/waiting-queue/waiting-queue.controller';
 import { UserController } from '../../presentation/controller/user/user.controller';
+import { RedisModule } from '../../infra/redis/redis.module';
 
 @Module({
-  imports: [DomainModule],
+  imports: [DomainModule, RedisModule],
   providers: [
     AuthService,
     ReservationFacade,
