@@ -28,6 +28,13 @@ export class ConcertController {
     private readonly redisClient: Redis,
   ) {}
 
+  @Post('seeds')
+  @ApiResponse({ status: 200, description: 'Concerts seeded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedConcerts(): Promise<void> {
+    return await this.ConcertFacade.seedConcerts();
+  }
+
   @Post('create')
   @ApiResponse({ status: 201, description: 'Concert created successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })

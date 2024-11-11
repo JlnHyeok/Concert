@@ -38,6 +38,10 @@ export class ConcertService {
     return await this.concertRepository.createConcert(name, location);
   }
 
+  async seedConcerts(): Promise<void> {
+    await this.concertRepository.seedConcerts();
+  }
+
   async createPerformanceDate(
     concertId: number,
     performanceDate: Date,
