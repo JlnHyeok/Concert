@@ -22,9 +22,10 @@ export class SeatRepository implements ISeatRepository {
   async findByConcertAndDate(
     concertId: number,
     performanceDate: Date,
-    manager: EntityManager, // 트랜잭션 매니저를 전달받도록 수정
+    manager?: EntityManager, // 트랜잭션 매니저를 전달받도록 수정
   ): Promise<Seat[] | null> {
-    return manager.find(Seat, {
+    let entityManager = manager ?? this.seatRepository.manager;
+    return entityManager.find(Seat, {
       where: {
         concertId,
         performanceDate,
@@ -53,6 +54,16 @@ export class SeatRepository implements ISeatRepository {
     updateSeat: Seat,
     manager: EntityManager,
   ): Promise<Seat> {
+    const seat = await manager
+      .createQueryBuilder(Seat, 'seat')
+      .setLock('pessimistic_write')
+      .where('id = :id', { id: seatId })
+      .getOne();
+
+    if (!seat) {
+      return null;
+    }
+
     return await manager
       .createQueryBuilder()
       .update(Seat)

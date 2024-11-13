@@ -13,7 +13,7 @@ import {
 } from '../model/repository/performance-date.repository';
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
-import { DataSource } from 'typeorm'; // DataSource import
+import { DataSource, EntityManager } from 'typeorm'; // DataSource import
 import { BusinessException } from '../../../common/exception/business-exception';
 import { CONCERT_ERROR_CODES } from '../error/concert.error';
 import { Concert } from '../model/entity/concert.entity';
@@ -91,21 +91,23 @@ export class ConcertService {
     return seat;
   }
 
-  async getSeats(concertId: number, performanceDate: Date): Promise<Seat[]> {
-    return await this.dataSource.transaction(async (manager) => {
-      const seats = await this.seatRepository.findByConcertAndDate(
-        concertId,
-        performanceDate,
-        manager, // 트랜잭션 매니저 전달
+  async getSeats(
+    concertId: number,
+    performanceDate: Date,
+    manager?: EntityManager,
+  ): Promise<Seat[]> {
+    const seats = await this.seatRepository.findByConcertAndDate(
+      concertId,
+      performanceDate,
+      manager, // 트랜잭션 매니저 전달
+    );
+    if (!seats || seats.length === 0) {
+      throw new BusinessException(
+        CONCERT_ERROR_CODES.SEATS_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
       );
-      if (!seats || seats.length === 0) {
-        throw new BusinessException(
-          CONCERT_ERROR_CODES.SEATS_NOT_FOUND,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      return seats;
-    });
+    }
+    return seats;
   }
 
   async getAllSeats(): Promise<Seat[]> {
@@ -125,7 +127,6 @@ export class ConcertService {
   }
 
   async updateSeat(seatId: number, seat: Seat): Promise<Seat> {
-    console.log('updateSeat');
     return await this.dataSource.transaction(async (manager) => {
       const updatedSeat = await this.seatRepository.updateSeat(
         seatId,
@@ -133,7 +134,6 @@ export class ConcertService {
         manager,
       );
 
-      console.log(updatedSeat);
       if (!updatedSeat) {
         throw new BusinessException(
           CONCERT_ERROR_CODES.UPDATE_SEAT_FAILED,
