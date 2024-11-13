@@ -85,7 +85,6 @@ export class WaitingQueueService {
   async updateTokenStatus() {
     const now = new Date();
     const processingKeys = await this.redisClient.zrange('waitingQueue', 0, -1);
-
     if (processingKeys.length === 0) return;
     await this.removeExpiredProcessingKeys(processingKeys, now);
     const remainingSlots = await this.calculateRemainingSlots(processingKeys);
@@ -93,6 +92,10 @@ export class WaitingQueueService {
     if (remainingSlots > 0) {
       await this.activateWaitingKeys(remainingSlots, now);
     }
+  }
+
+  async deleteAll() {
+    await this.redisClient.flushall();
   }
 
   //#region private methods

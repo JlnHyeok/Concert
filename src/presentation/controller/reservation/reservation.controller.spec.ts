@@ -114,6 +114,7 @@ describe('ReservationController (e2e)', () => {
       });
   });
   afterEach(async () => {
+    await waitingQueueService.deleteAll();
     await dataSource.manager.query(
       'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
     );
