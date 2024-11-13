@@ -35,6 +35,23 @@ export class ConcertController {
     return await this.ConcertFacade.seedConcerts();
   }
 
+  @Post('schedule/seeds')
+  @ApiResponse({
+    status: 200,
+    description: 'Performance dates seeded successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedPerformanceDates(): Promise<void> {
+    return await this.ConcertFacade.seedPerformanceDates();
+  }
+
+  @Post('seat/seeds')
+  @ApiResponse({ status: 200, description: 'Seats seeded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedSeats(): Promise<void> {
+    return await this.ConcertFacade.seedSeats();
+  }
+
   @Post('create')
   @ApiResponse({ status: 201, description: 'Concert created successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })

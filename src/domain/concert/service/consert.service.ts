@@ -41,6 +41,12 @@ export class ConcertService {
   async seedConcerts(): Promise<void> {
     await this.concertRepository.seedConcerts();
   }
+  async seedPerformanceDates(): Promise<void> {
+    await this.performanceDateRepository.seedPerformanceDates();
+  }
+  async seedSeats(): Promise<void> {
+    await this.seatRepository.seedSeats();
+  }
 
   async createPerformanceDate(
     concertId: number,

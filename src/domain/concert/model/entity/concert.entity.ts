@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  Index,
+} from 'typeorm';
 import { PerformanceDate } from './performance-date.entity';
 import { Seat } from './seat.entity';
 
@@ -8,6 +14,7 @@ export class Concert {
   id: number;
 
   @Column()
+  // @Index()
   name: string;
 
   @Column()
