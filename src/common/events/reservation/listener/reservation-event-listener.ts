@@ -6,6 +6,12 @@ import { BusinessException } from '../../../../common/exception/business-excepti
 
 @Injectable()
 export class ReservationEventListener {
+  @OnEvent(RESERVATION_EVENT.RESERVATION_COMPLETED)
+  async handleReservationCompleted(payload: { reservation: any }) {
+    const { reservation } = payload;
+    console.log('SAVE RESERVATION HISTORY OR SEND EMAIL TO USER');
+  }
+
   @OnEvent(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE)
   async handlePaymentExternalInvoke(payload: {
     userId: string;
