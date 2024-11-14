@@ -98,6 +98,29 @@ export class WaitingQueueService {
     await this.redisClient.flushall();
   }
 
+  async checkTokenIsProcessing(token: string): Promise<boolean> {
+    const { uuid } = this.verifyToken(token);
+    const queueKey = `queue:${uuid}`;
+    const queueInfo = await this.getQueueInfo(queueKey);
+    if (queueInfo.status !== 'PROCESSING') {
+      throw new BusinessException(
+        WAITING_QUEUE_ERROR_CODES.TOKEN_EXPIRED,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    let expired = new Date(queueInfo.expireAt);
+    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
+    if (parsedExpired.toISOString() < new Date().toISOString()) {
+      throw new BusinessException(
+        WAITING_QUEUE_ERROR_CODES.TOKEN_EXPIRED,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    return queueInfo.status === 'PROCESSING';
+  }
+
   //#region private methods
   // 대기열 즉시 활성화
   private activateQueueImmediately(queueInfo: any) {

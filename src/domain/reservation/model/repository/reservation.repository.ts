@@ -7,6 +7,7 @@ export interface IReservationRepository {
   findById(id: number): Promise<Reservation>;
   findBySeatId(seatId: number): Promise<Reservation[]>;
   findByUserId(userId: number): Promise<Reservation[]>;
+  findByUserIdAndSeatId(userId: number, seatId: number): Promise<Reservation>;
   createReservation(
     userId: number,
     seatId: number,

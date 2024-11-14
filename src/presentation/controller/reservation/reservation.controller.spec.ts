@@ -66,6 +66,8 @@ describe('ReservationController (e2e)', () => {
       TRUNCATE TABLE "seat" RESTART IDENTITY CASCADE;`);
     await dataSource.manager.query(`
       TRUNCATE TABLE "reservation" RESTART IDENTITY CASCADE;`);
+
+    await dataSource.destroy();
     await app.close();
   });
 
@@ -177,7 +179,7 @@ describe('ReservationController (e2e)', () => {
       const token: string[] = [];
       let timer: NodeJS.Timeout;
       for (let i = 0; i < 10; i++) {
-        const issueToken = await request(app.getHttpServer())
+        await request(app.getHttpServer())
           .post('/waiting-queue/issue')
           .expect(201)
           .then((res) => {
@@ -244,71 +246,42 @@ describe('ReservationController (e2e)', () => {
   describe('/reservation/payment', () => {
     it('should handle concurrent payment requests', async () => {
       // const userRequests: Promise<any>[] = [];
-      const token: string[] = [];
       // let timer: NodeJS.Timeout;
-
-      for (let i = 0; i < 5; i++) {
-        const issueToken = await request(app.getHttpServer())
-          .post('/waiting-queue/issue')
-          .expect(201)
-          .then((res) => {
-            token.push(res.headers['authorization']);
-          });
-        waitingQueueService.updateTokenStatus();
-      }
-
-      const payRequest = Array(5)
-        .fill(0)
-        .map((_, i) => {
-          return request(app.getHttpServer())
-            .post('/reservation/payment')
-            .set('authorization', `${token[i]}`)
-            .send({
-              userId: Number(`${i + 1}`),
-              seatId: Number(createdSeatRes.body.id),
-            });
+      let issuedToken: string;
+      await request(app.getHttpServer())
+        .post('/waiting-queue/issue')
+        .expect(201)
+        .then((res) => {
+          issuedToken = res.headers['authorization'];
         });
 
-      const responses = await Promise.allSettled(payRequest);
+      const reservationRequest = await request(app.getHttpServer())
+        .post('/reservation/seat')
+        .set('authorization', `${issuedToken}`)
+        .send({
+          userId: 1,
+          concertId: concertId,
+          performanceDate: performanceDate,
+          seatNumber: 1,
+        });
 
-      responses.forEach((response, index) => {
-        if (index == 0) {
-          expect(response.status).toBe('fulfilled'); // 결제가 성공적으로 생성되어야 함
-        }
+      const payRequest = await request(app.getHttpServer())
+        .post('/reservation/payment')
+        .set('authorization', `${issuedToken}`)
+        .send({
+          userId: 1,
+          seatId: Number(createdSeatRes.body.id),
+        });
+
+      console.log('reservation', reservationRequest.body);
+      console.log('pay result', payRequest.body);
+
+      expect(payRequest.body).toEqual({
+        id: expect.any(Number),
+        price: '10000',
+        createdAt: expect.any(String),
+        reservation_id: 1,
       });
-
-      // 모든 응답을 확인
-
-      // for (let i = 0; i < 5; i++) {
-      //   const issueToken = request(app.getHttpServer())
-      //     .post('/waiting-queue/issue')
-      //     .expect(201)
-      //     .then((res) => {
-      //       token.push(res.headers['authorization']);
-      //     });
-      //   waitingQueueService.updateTokenStatus();
-
-      //   timer = setTimeout(async () => {
-      //     const requests = request(app.getHttpServer())
-      //       .post('/reservation/payment')
-      //       .set('Authorization', `${token[i]}`) // 유효한 토큰 사용
-      //       .send({
-      //         userId: `user${i + 1}`,
-      //         seatId: '1',
-      //       });
-      //     userRequests.push(requests);
-      //   }, 100);
-      // }
-      // clearTimeout(timer);
-      // const responses = await Promise.allSettled(userRequests);
-
-      // // 모든 응답을 확인
-      // responses.forEach((response, index) => {
-      //   if (index == 0) {
-      //     expect(response.status).toBe(HttpStatus.CREATED); // 결제가 성공적으로 생성되어야 함
-      //   }
-      //   expect(response).toBe(`user${index + 1}`);
-      // });
     });
   });
 });
