@@ -21,7 +21,8 @@
     "migration:generate": "typeorm migration:generate -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:run": "typeorm migration:run -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:revert": "typeorm migration:revert -d src/infra/db/typeorm/typeorm.config.ts",
-    "typeorm": "typeorm"
+    "typeorm": "typeorm",
+    "start:docker": "npm run build && bash ./docker/build-and-run.sh"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.3.0",
