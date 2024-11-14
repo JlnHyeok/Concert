@@ -81,11 +81,15 @@ export class ReservationFacade {
     //#endregion
 
     // 3. 외부 서비스 호출
-    this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE, {
-      userId,
-      token,
-      price: seat.price,
-    });
+    try {
+      this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE, {
+        userId,
+        token,
+        price: seat.price,
+      });
+    } catch (e) {
+      throw new BusinessException(COMMON_ERRORS.EXTERNAL_PAYMENT_SERVICE_ERROR);
+    }
 
     seat.status = 'RESERVED';
     await this.concertService.updateSeat(seat.id, seat);
