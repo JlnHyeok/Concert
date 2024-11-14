@@ -1,23 +1,19 @@
 // server.js
 const express = require('express');
-const ApiService = require('./service');
 
 const app = express();
 const port = 4000;
 
 // 외부 API 설정
-const apiService = new ApiService('https://jsonplaceholder.typicode.com'); // 예시: JSONPlaceholder API
 
 // 특정 엔드포인트 호출 예시
-app.get('/api/posts', async (req, res) => {
+app.post('/api/payment', async (req, res) => {
+  console.log('결제 요청이 왔습니다');
   try {
     // 외부 API 호출 (GET /posts)
-    const posts = await apiService.makeRequest('/posts');
-    res.status(200).json(posts);
+    res.status(200).json({ isSuccess: true, message: '결제 성공' });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: '외부 API 호출 실패', error: error.message });
+    res.status(500).json({ message: '결제 실패', error: error.message });
   }
 });
 
