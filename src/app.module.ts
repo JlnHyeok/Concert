@@ -9,9 +9,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ValidationInterceptor } from './common/interceptor/validation-interceptor';
 import { HttpExceptionFilter } from './common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, // 환경변수 모듈을 글로벌로 설정
       envFilePath: ['.env'], // 환경변수 파일 경로

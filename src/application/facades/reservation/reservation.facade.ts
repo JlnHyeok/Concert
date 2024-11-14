@@ -8,6 +8,7 @@ import { BusinessException } from '../../../common/exception/business-exception'
 import { COMMON_ERRORS } from '../../../common/constants/error';
 import { DataSource } from 'typeorm';
 import { Seat } from 'src/domain/concert/model/entity/seat.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ReservationFacade {
@@ -21,6 +22,7 @@ export class ReservationFacade {
     @Inject(ReservationService)
     private readonly reservationService: ReservationService,
     private readonly dataSource: DataSource,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async createReservation({
@@ -161,6 +163,9 @@ export class ReservationFacade {
   @Cron('0 */3 * * * *')
   async releaseHoldSeat() {
     const seats = await this.concertService.getAllSeats();
+
+    if (seats.length === 0) return;
+
     const holdSeats = seats.filter((seat) => seat.status === 'HOLD');
     const now = new Date();
     for (const seat of holdSeats) {
