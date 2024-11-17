@@ -3,12 +3,18 @@ import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { winstonLogger, HttpExceptionFilter } from './common';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { KAFKA_OPTION } from './common/constants/kafka';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: true,
     logger: winstonLogger,
   });
+
+  // Kafka 설정
+  app.connectMicroservice<MicroserviceOptions>(KAFKA_OPTION);
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
