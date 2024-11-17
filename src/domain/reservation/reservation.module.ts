@@ -7,9 +7,19 @@ import { RESERVATION_REPOSITORY } from './model/repository/reservation.repositor
 import { ReservationRepository } from '../../infra/repo/reservation/reservation.repo';
 import { PAYMENT_REPOSITORY } from './model/repository/payment.repository';
 import { PaymentRepository } from '../../infra/repo/reservation/payment.repo';
+import { ClientsModule } from '@nestjs/microservices';
+import { KAFKA_OPTION } from 'src/common/constants/kafka';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Reservation, Payment])],
+  imports: [
+    TypeOrmModule.forFeature([Reservation, Payment]),
+    ClientsModule.register([
+      {
+        name: 'KAFKA_CLIENT',
+        ...KAFKA_OPTION,
+      },
+    ]),
+  ],
   providers: [
     ReservationService,
     {

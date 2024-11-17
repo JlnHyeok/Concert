@@ -1,9 +1,9 @@
 import {
   Inject,
   Injectable,
-  NotFoundException,
-  BadRequestException,
   HttpStatus,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import {
   IReservationRepository,
@@ -16,16 +16,29 @@ import {
 import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
 import { BusinessException } from '../../../common/exception/business-exception';
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
+import { ClientKafka } from '@nestjs/microservices';
 
 @Injectable()
-export class ReservationService {
+export class ReservationService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
     private readonly dataSource: DataSource,
+    @Inject('KAFKA_CLIENT')
+    private readonly kafkaClient: ClientKafka,
   ) {}
+  async onModuleInit(): Promise<void> {
+    // const topics = ['reservation'];
+    // topics.forEach((topic) => this.kafkaClient.subscribeToResponseOf(topic));
+    this.kafkaClient.subscribeToResponseOf('reservation');
+    await this.kafkaClient.connect();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.kafkaClient.close();
+  }
 
   async getReservation(userId: number) {
     const reservations = await this.reservationRepository.findByUserId(userId);
