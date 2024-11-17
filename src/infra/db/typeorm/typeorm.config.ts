@@ -33,7 +33,7 @@ export const typeOrmConfigFactory = async (
     Concert,
     PerformanceDate,
   ],
-  synchronize: configService.get<boolean>('DB_SYNC', false), // 운영 환경에선 false로 설정
+  synchronize: configService.get<boolean>('DB_SYNC', true), // 운영 환경에선 false로 설정
   logging: configService.get<boolean>('DB_LOGGING', true),
 });
 
