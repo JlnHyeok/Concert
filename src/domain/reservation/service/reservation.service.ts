@@ -17,9 +17,10 @@ import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
 import { BusinessException } from '../../../common/exception/business-exception';
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
 import { ClientKafka } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
-export class ReservationService implements OnModuleInit, OnModuleDestroy {
+export class ReservationService {
   constructor(
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
@@ -29,16 +30,6 @@ export class ReservationService implements OnModuleInit, OnModuleDestroy {
     @Inject('KAFKA_CLIENT')
     private readonly kafkaClient: ClientKafka,
   ) {}
-  async onModuleInit(): Promise<void> {
-    // const topics = ['reservation'];
-    // topics.forEach((topic) => this.kafkaClient.subscribeToResponseOf(topic));
-    this.kafkaClient.subscribeToResponseOf('reservation');
-    await this.kafkaClient.connect();
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    await this.kafkaClient.close();
-  }
 
   async getReservation(userId: number) {
     const reservations = await this.reservationRepository.findByUserId(userId);
@@ -64,8 +55,8 @@ export class ReservationService implements OnModuleInit, OnModuleDestroy {
     return reservation;
   }
 
-  async createReservation(userId: number, seatId: number) {
-    const reservations = await this.reservationRepository.findBySeatId(seatId);
+  async createReservation(userId: number, seat: { id: number; price: number }) {
+    const reservations = await this.reservationRepository.findBySeatId(seat.id);
     if (reservations.length > 0) {
       throw new BusinessException(
         RESERVATION_ERROR_CODES.SEAT_ALREADY_RESERVED,
@@ -74,9 +65,42 @@ export class ReservationService implements OnModuleInit, OnModuleDestroy {
     }
     const reservation = await this.reservationRepository.createReservation(
       userId,
-      seatId,
+      seat.id,
       new Date(),
     );
+    console.log('reservation', reservation);
+
+    this.kafkaClient
+      .send('payment', {
+        key: `${userId}:${reservation.id}`,
+        value: {
+          id: reservation.id,
+          price: seat.price,
+        },
+      })
+      .subscribe({
+        next: (response) => {
+          console.log(response);
+        },
+        error: (error) => {
+          console.error(error);
+        },
+      });
+    // try {
+    //   const response = await lastValueFrom(
+    //     this.kafkaClient.send('payment', {
+    //       key: `${userId}:${reservation.id}`,
+    //       value: {
+    //         id: reservation.id,
+    //         price: seat.price,
+    //       },
+    //     }),
+    //   );
+    //   console.log(response);
+    // } catch (error) {
+    //   console.error(error);
+    // }
+
     return reservation;
   }
 

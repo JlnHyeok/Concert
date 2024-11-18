@@ -6,6 +6,7 @@ import {
   BadRequestException,
   UseGuards,
   Body,
+  Inject,
 } from '@nestjs/common';
 import { ReservationFacade } from '../../../application/facades/reservation/reservation.facade';
 import {
@@ -17,12 +18,36 @@ import {
   ReservationResponseDto,
 } from '../../dto/response/reservation.response.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../common';
+import { BusinessException, JwtAuthGuard } from '../../../common';
+import {
+  ClientKafka,
+  Ctx,
+  KafkaContext,
+  MessagePattern,
+  Payload,
+} from '@nestjs/microservices';
+import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { lastValueFrom } from 'rxjs';
 
 @ApiTags('reservation')
 @Controller('reservation')
-export class ReservationController {
-  constructor(private readonly reservationFacade: ReservationFacade) {}
+export class ReservationController implements OnModuleInit, OnModuleDestroy {
+  constructor(
+    private readonly reservationFacade: ReservationFacade,
+    @Inject('KAFKA_CLIENT')
+    private readonly kafkaClient: ClientKafka,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    this.kafkaClient.subscribeToResponseOf('reservation');
+    this.kafkaClient.subscribeToResponseOf('payment');
+
+    await this.kafkaClient.connect();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.kafkaClient.close();
+  }
 
   @Post('/seat')
   @UseGuards(JwtAuthGuard)
@@ -34,13 +59,27 @@ export class ReservationController {
   ): Promise<ReservationResponseDto> {
     const { userId, concertId, performanceDate, seatNumber } = body;
     token = token?.split(' ')[1];
-    return await this.reservationFacade.createReservation({
-      token,
-      userId,
-      concertId,
-      performanceDate,
-      seatNumber,
-    });
+
+    // Kafka 이벤트를 보내고 응답을 기다린 후 결과를 반환
+    // 하위 서비스에서 발생한 예외들을 HttpException 에서 RpcException 으로 변환 후 여기서 처리
+    try {
+      const response = await lastValueFrom(
+        this.kafkaClient.send('reservation', {
+          key: `${userId}:${concertId}:${performanceDate.toISOString()}:${seatNumber}`,
+          value: {
+            userId,
+            concertId,
+            performanceDate,
+            seatNumber,
+          },
+        }),
+      );
+
+      // 응답을 성공적으로 받았다면 반환
+      return response; // 예약 성공 시 응답을 그대로 반환
+    } catch (error) {
+      throw new BusinessException(error);
+    }
   }
 
   @Post('/payment')
@@ -54,5 +93,20 @@ export class ReservationController {
     const { userId, seatId } = body;
     token = token?.split(' ')[1];
     return await this.reservationFacade.createPayment(token, userId, seatId);
+  }
+
+  @MessagePattern('reservation')
+  async handleReservationSeat(
+    @Payload() message: ReservationSeatRequestDto,
+    @Ctx() context: KafkaContext,
+  ) {
+    const { userId, concertId, performanceDate, seatNumber } = message;
+
+    return await this.reservationFacade.createReservation({
+      userId,
+      concertId,
+      performanceDate,
+      seatNumber,
+    });
   }
 }

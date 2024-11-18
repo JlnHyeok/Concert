@@ -7,9 +7,9 @@ import { Cron } from '@nestjs/schedule';
 import { BusinessException } from '../../../common/exception/business-exception';
 import { COMMON_ERRORS } from '../../../common/constants/error';
 import { DataSource } from 'typeorm';
-import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RESERVATION_EVENT } from '../../../common/events/reservation/reservation-event';
+import { ToRpcException } from 'src/common/exception/rpc-exception.filter';
 
 @Injectable()
 export class ReservationFacade {
@@ -25,21 +25,18 @@ export class ReservationFacade {
     private eventEmitter: EventEmitter2,
   ) {}
 
+  @ToRpcException()
   async createReservation({
-    token,
     userId,
     concertId,
     performanceDate,
     seatNumber,
   }: {
-    token: string;
     userId: number;
     concertId: number;
     performanceDate: Date;
     seatNumber: number;
   }) {
-    await this.waitingQueueService.checkTokenIsProcessing(token);
-
     const seat = await this.concertService.checkAndUpdateSeatStatus(
       concertId,
       performanceDate,
@@ -47,26 +44,13 @@ export class ReservationFacade {
       'AVAILABLE',
     );
 
-    const reservation = this.reservationService.createReservation(
-      userId,
-      seat.id,
-    );
-
-    // RESERVATION COMPLETED EVENT
-    this.eventEmitter.emit(RESERVATION_EVENT.RESERVATION_COMPLETED, {
-      reservation,
-    });
+    const reservation = this.reservationService.createReservation(userId, seat);
 
     return reservation;
     //#endregion
   }
 
   async createPayment(token: string, userId: number, seatId: number) {
-    // await this.checkActivatedToken(token);
-    //#region 1. CHECK TOKEN
-    await this.waitingQueueService.checkTokenIsProcessing(token);
-    //#endregion
-
     //#region 2. CHECK SEAT AND RESERVATION
     const seat = await this.concertService.checkSeatStatusBySeatId(
       seatId,
