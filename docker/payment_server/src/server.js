@@ -23,17 +23,34 @@ const initKafka = async () => {
     eachMessage: async ({ topic, partition, message }) => {
       console.log('외부 API 호출');
       console.log({
+        key: message.key.toString(),
         value: message.value.toString(),
       });
-      await producer.send({
-        topic: 'payment.reply',
-        messages: [
-          {
-            value: JSON.stringify({ isSuccess: true, message: '결제 성공' }),
-          },
-        ],
-      });
-      console.log('결제 완료');
+
+      if (1 == 1) {
+        console.log('결제 완료');
+        await producer.send({
+          topic: 'payment.success',
+          messages: [
+            {
+              key: message.key,
+              value: JSON.stringify({ isSuccess: true, message: '결제 성공' }),
+            },
+          ],
+        });
+      } else {
+        await producer.send({
+          topic: 'payment.fail',
+          messages: [
+            {
+              key: message.key,
+              value: JSON.stringify({ isSuccess: false, message: '결제 실패' }),
+            },
+          ],
+        });
+        console.log('결제 실패');
+      }
+      return '결제 완료';
     },
     autoCommit: true,
   });
