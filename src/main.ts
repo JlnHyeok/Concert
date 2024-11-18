@@ -14,7 +14,6 @@ async function bootstrap() {
 
   // Kafka 설정
   app.connectMicroservice<MicroserviceOptions>(KAFKA_OPTION);
-
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -40,6 +39,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
+  await app.startAllMicroservices();
   await app.listen(3000);
 }
 bootstrap();

@@ -10,6 +10,13 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ValidationInterceptor } from './common/interceptor/validation-interceptor';
 import { HttpExceptionFilter } from './common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ConcertController } from './presentation/controller/concert/concert.controller';
+import { UserController } from './presentation/controller/user/user.controller';
+import { ReservationController } from './presentation/controller/reservation/reservation.controller';
+import { WaitingQueueController } from './presentation/controller/waiting-queue/waiting-queue.controller';
+import { RedisModule } from './infra/redis/redis.module';
+import { ClientsModule } from '@nestjs/microservices';
+import { KAFKA_OPTION } from './common/constants/kafka';
 
 @Module({
   imports: [
@@ -18,11 +25,26 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       isGlobal: true, // 환경변수 모듈을 글로벌로 설정
       envFilePath: ['.env'], // 환경변수 파일 경로
     }),
+    ClientsModule.register({
+      isGlobal: true,
+      clients: [
+        {
+          name: 'KAFKA_CLIENT',
+          ...KAFKA_OPTION,
+        },
+      ],
+    }),
     ScheduleModule.forRoot(),
     DatabaseModule,
     FacadeModule,
+    RedisModule,
   ],
-  controllers: [],
+  controllers: [
+    ConcertController,
+    UserController,
+    ReservationController,
+    WaitingQueueController,
+  ],
   providers: [
     AppService,
     ConfigService,
