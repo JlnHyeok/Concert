@@ -80,13 +80,13 @@ export class WaitingQueueService {
     return this.createToken(uuid);
   }
 
-  // 주기적으로 대기열 상태 업데이트
+  // 주기적으로 대기열 상태 업데이트 => expire_in 옵션이 있으므로 만료처리 필요 없음.
   @Cron('0 */3 * * * *')
   async updateTokenStatus() {
     const now = new Date();
     const processingKeys = await this.redisClient.zrange('waitingQueue', 0, -1);
     if (processingKeys.length === 0) return;
-    await this.removeExpiredProcessingKeys(processingKeys, now);
+    // await this.removeExpiredProcessingKeys(processingKeys, now);
     const remainingSlots = await this.calculateRemainingSlots(processingKeys);
 
     if (remainingSlots > 0) {
