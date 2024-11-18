@@ -22,10 +22,8 @@ export class ReservationFacade {
     private readonly concertService: ConcertService,
     @Inject(ReservationService)
     private readonly reservationService: ReservationService,
-    private eventEmitter: EventEmitter2,
   ) {}
 
-  @ToRpcException()
   async createReservation({
     userId,
     concertId,
@@ -64,16 +62,16 @@ export class ReservationFacade {
       );
     //#endregion
 
-    // 3. 외부 서비스 호출
-    try {
-      this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE, {
-        userId,
-        token,
-        price: seat.price,
-      });
-    } catch (e) {
-      throw new BusinessException(COMMON_ERRORS.EXTERNAL_PAYMENT_SERVICE_ERROR);
-    }
+    // // 3. 외부 서비스 호출
+    // try {
+    //   this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE, {
+    //     userId,
+    //     token,
+    //     price: seat.price,
+    //   });
+    // } catch (e) {
+    //   throw new BusinessException(COMMON_ERRORS.EXTERNAL_PAYMENT_SERVICE_ERROR);
+    // }
 
     seat.status = 'RESERVED';
     await this.concertService.updateSeat(seat.id, seat);
@@ -84,11 +82,11 @@ export class ReservationFacade {
       seat.price,
     );
 
-    // PAYMENT COMPLETED EVENT
-    this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_COMPLETED, {
-      reservation: reservation,
-      price: seat.price,
-    });
+    // // PAYMENT COMPLETED EVENT
+    // this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_COMPLETED, {
+    //   reservation: reservation,
+    //   price: seat.price,
+    // });
 
     // 5. 대기열 토큰 만료
     this.waitingQueueService.expireToken(token);

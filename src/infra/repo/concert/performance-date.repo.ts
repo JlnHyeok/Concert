@@ -42,7 +42,6 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
 
   async seedPerformanceDates(): Promise<void> {
     const performanceDates = [];
-    console.log('CALL');
     for (let i = 1; i <= 100_000; i++) {
       for (let j = 0; j <= 30; j++) {
         const performanceDate = new PerformanceDate();

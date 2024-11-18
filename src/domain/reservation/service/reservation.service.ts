@@ -16,8 +16,9 @@ import {
 import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
 import { BusinessException } from '../../../common/exception/business-exception';
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
-import { ClientKafka } from '@nestjs/microservices';
+import { ClientKafka, EventPattern } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { Kafka } from 'kafkajs';
 
 @Injectable()
 export class ReservationService {
@@ -68,38 +69,6 @@ export class ReservationService {
       seat.id,
       new Date(),
     );
-    console.log('reservation', reservation);
-
-    this.kafkaClient
-      .send('payment', {
-        key: `${userId}:${reservation.id}`,
-        value: {
-          id: reservation.id,
-          price: seat.price,
-        },
-      })
-      .subscribe({
-        next: (response) => {
-          console.log(response);
-        },
-        error: (error) => {
-          console.error(error);
-        },
-      });
-    // try {
-    //   const response = await lastValueFrom(
-    //     this.kafkaClient.send('payment', {
-    //       key: `${userId}:${reservation.id}`,
-    //       value: {
-    //         id: reservation.id,
-    //         price: seat.price,
-    //       },
-    //     }),
-    //   );
-    //   console.log(response);
-    // } catch (error) {
-    //   console.error(error);
-    // }
 
     return reservation;
   }

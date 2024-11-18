@@ -22,6 +22,7 @@ import { BusinessException, JwtAuthGuard } from '../../../common';
 import {
   ClientKafka,
   Ctx,
+  EventPattern,
   KafkaContext,
   MessagePattern,
   Payload,
@@ -40,7 +41,6 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     this.kafkaClient.subscribeToResponseOf('reservation');
-    this.kafkaClient.subscribeToResponseOf('payment');
 
     await this.kafkaClient.connect();
   }
@@ -60,26 +60,12 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
     const { userId, concertId, performanceDate, seatNumber } = body;
     token = token?.split(' ')[1];
 
-    // Kafka 이벤트를 보내고 응답을 기다린 후 결과를 반환
-    // 하위 서비스에서 발생한 예외들을 HttpException 에서 RpcException 으로 변환 후 여기서 처리
-    try {
-      const response = await lastValueFrom(
-        this.kafkaClient.send('reservation', {
-          key: `${userId}:${concertId}:${performanceDate.toISOString()}:${seatNumber}`,
-          value: {
-            userId,
-            concertId,
-            performanceDate,
-            seatNumber,
-          },
-        }),
-      );
-
-      // 응답을 성공적으로 받았다면 반환
-      return response; // 예약 성공 시 응답을 그대로 반환
-    } catch (error) {
-      throw new BusinessException(error);
-    }
+    return await this.reservationFacade.createReservation({
+      userId,
+      concertId,
+      performanceDate,
+      seatNumber,
+    });
   }
 
   @Post('/payment')
@@ -93,20 +79,5 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
     const { userId, seatId } = body;
     token = token?.split(' ')[1];
     return await this.reservationFacade.createPayment(token, userId, seatId);
-  }
-
-  @MessagePattern('reservation')
-  async handleReservationSeat(
-    @Payload() message: ReservationSeatRequestDto,
-    @Ctx() context: KafkaContext,
-  ) {
-    const { userId, concertId, performanceDate, seatNumber } = message;
-
-    return await this.reservationFacade.createReservation({
-      userId,
-      concertId,
-      performanceDate,
-      seatNumber,
-    });
   }
 }
