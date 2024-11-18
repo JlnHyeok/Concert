@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { ISeatRepository } from '../../../domain/concert/model/repository/seat.repository';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository, EntityManager, Between } from 'typeorm';
 import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 
 export class SeatRepository implements ISeatRepository {
@@ -48,11 +48,15 @@ export class SeatRepository implements ISeatRepository {
     seatNumber: number,
     manager: EntityManager,
   ): Promise<Seat | null> {
+    const startOfDay = new Date(new Date(performanceDate).setHours(0, 0, 0, 0));
+    const endOfDay = new Date(
+      new Date(performanceDate).setHours(23, 59, 59, 999),
+    );
     return await manager.findOne(Seat, {
       where: {
         concertId,
-        performanceDate,
         seatNumber,
+        performanceDate: Between(startOfDay, endOfDay),
       },
       lock: { mode: 'pessimistic_write' },
     });
