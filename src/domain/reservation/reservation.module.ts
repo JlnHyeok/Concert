@@ -7,7 +7,7 @@ import { RESERVATION_REPOSITORY } from './model/repository/reservation.repositor
 import { ReservationRepository } from '../../infra/repo/reservation/reservation.repo';
 import { PAYMENT_REPOSITORY } from './model/repository/payment.repository';
 import { PaymentRepository } from '../../infra/repo/reservation/payment.repo';
-import { PAYMENT_CREATED_EVENT_REPOSITORY } from './model/repository/payment.outbox.repository';
+import { PAYMENT_OUTBOX_REPOSITORY } from './model/repository/payment.outbox.repository';
 import { PaymentOutboxRepository } from '../../infra/repo/reservation/payment.outbox.repo';
 import { PaymentOutbox } from './model/entity/payment.outbox.entity';
 
@@ -24,7 +24,7 @@ import { PaymentOutbox } from './model/entity/payment.outbox.entity';
       useClass: PaymentRepository,
     },
     {
-      provide: PAYMENT_CREATED_EVENT_REPOSITORY,
+      provide: PAYMENT_OUTBOX_REPOSITORY,
       useClass: PaymentOutboxRepository,
     },
   ],

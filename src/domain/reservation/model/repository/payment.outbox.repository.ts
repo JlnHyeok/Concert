@@ -5,8 +5,7 @@ import {
   PaymentOutboxStatus,
 } from '../entity/payment.outbox.entity';
 
-export const PAYMENT_CREATED_EVENT_REPOSITORY =
-  'PAYMENT_CREATED_EVENT_REPOSITORY';
+export const PAYMENT_OUTBOX_REPOSITORY = 'PAYMENT_OUTBOX_REPOSITORY';
 
 export interface IPaymentOutboxRepository {
   getAllPaymentOutboxsByStatus(

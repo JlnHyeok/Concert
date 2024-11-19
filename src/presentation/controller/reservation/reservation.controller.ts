@@ -19,8 +19,8 @@ import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common';
 import { ClientKafka, MessagePattern } from '@nestjs/microservices';
 import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PaymentOutboxStatus } from 'src/domain/reservation/model/entity/payment.outbox.entity';
-import { PaymentOutboxRequestCommonDto } from 'src/presentation/dto/request/payment.outbox.request.dto';
+import { PaymentOutboxStatus } from '../../../domain/reservation/model/entity/payment.outbox.entity';
+import { PaymentOutboxRequestCommonDto } from '../../../presentation/dto/request/payment.outbox.request.dto';
 
 @ApiTags('reservation')
 @Controller('reservation')

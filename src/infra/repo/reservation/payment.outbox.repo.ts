@@ -3,7 +3,7 @@ import {
   IPaymentOutboxMetadata,
   PaymentOutbox,
   PaymentOutboxStatus,
-} from 'src/domain/reservation/model/entity/payment.outbox.entity';
+} from '../../../domain/reservation/model/entity/payment.outbox.entity';
 import { IPaymentOutboxRepository } from '../../../domain/reservation/model/repository/payment.outbox.repository';
 import { EntityManager, Repository } from 'typeorm';
 

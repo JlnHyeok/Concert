@@ -12,7 +12,7 @@ import { BusinessException } from '../../../common/exception/business-exception'
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
 import {
   IPaymentOutboxRepository,
-  PAYMENT_CREATED_EVENT_REPOSITORY,
+  PAYMENT_OUTBOX_REPOSITORY,
 } from '../model/repository/payment.outbox.repository';
 import {
   IPaymentOutboxMetadata,
@@ -27,7 +27,7 @@ export class ReservationService {
     private readonly reservationRepository: IReservationRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
-    @Inject(PAYMENT_CREATED_EVENT_REPOSITORY)
+    @Inject(PAYMENT_OUTBOX_REPOSITORY)
     private readonly paymentOutboxRepository: IPaymentOutboxRepository,
   ) {}
 
