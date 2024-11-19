@@ -12,6 +12,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { BusinessException } from '../../../common/exception/business-exception';
 import { USER_ERROR_CODES } from '../error/user.error';
 import { Balance } from '../model/entity/balance.entity';
+import { InjectEntityManager } from '@nestjs/typeorm';
 
 @Injectable()
 export class UserService {
@@ -22,7 +23,8 @@ export class UserService {
     @Inject(BALANCE_REPOSITORY)
     private readonly balanceRepository: IBalanceRepository,
 
-    private readonly dataSource: DataSource, // Inject DataSource for transactions
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
   ) {}
 
   async getById(userId: number): Promise<User> {
@@ -42,10 +44,9 @@ export class UserService {
     userId: number,
     point: number,
   ): Promise<{ balance: number }> {
-    const manager = this.dataSource.createEntityManager();
     let afterBalance: number | null = null;
 
-    await manager.transaction(
+    await this.entityManager.transaction(
       async (transactionalEntityManager: EntityManager) => {
         const user = await this.userRepository.findByUserIdWithLock(
           userId,
@@ -85,7 +86,7 @@ export class UserService {
     point: number,
     manager?: EntityManager,
   ): Promise<{ balance: number }> {
-    const entityManager = manager ?? this.dataSource;
+    const entityManager = manager ?? this.entityManager;
     let afterBalance: number | null = null;
 
     await entityManager.transaction(

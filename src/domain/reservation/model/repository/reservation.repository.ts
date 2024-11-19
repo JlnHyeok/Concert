@@ -17,7 +17,7 @@ export interface IReservationRepository {
     seatId: number,
     createdAt: Date,
   ): Promise<Reservation>;
-  deleteReservation(id: number): Promise<void>;
+  deleteReservation(id: number, manager?: EntityManager): Promise<void>;
   findByIdWithLock(
     manager: EntityManager,
     reservationId: number,

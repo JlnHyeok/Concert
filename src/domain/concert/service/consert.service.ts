@@ -13,11 +13,12 @@ import {
 } from '../model/repository/performance-date.repository';
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
-import { DataSource, EntityManager } from 'typeorm'; // DataSource import
+import { EntityManager } from 'typeorm'; // DataSource import
 import { BusinessException } from '../../../common/exception/business-exception';
 import { CONCERT_ERROR_CODES } from '../error/concert.error';
 import { Concert } from '../model/entity/concert.entity';
 import { COMMON_ERRORS } from '../../../common';
+import { InjectEntityManager } from '@nestjs/typeorm';
 
 @Injectable()
 export class ConcertService {
@@ -28,7 +29,8 @@ export class ConcertService {
     private readonly seatRepository: ISeatRepository,
     @Inject(PERFORMANCE_DATE_REPOSITORY)
     private readonly performanceDateRepository: IPerformanceDateRepository,
-    private readonly dataSource: DataSource, // DataSource 주입
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
   ) {}
 
   async getAllConcerts(): Promise<Concert[]> {
@@ -67,7 +69,7 @@ export class ConcertService {
   }): Promise<Seat> {
     const { concertId, performanceDate, seatNumber } = seat;
     let createdSeat;
-    await this.dataSource.transaction(async (manager) => {
+    await this.entityManager.transaction(async (manager) => {
       const seats = await this.seatRepository.findByConcertAndDate(
         concertId,
         performanceDate,
@@ -118,7 +120,7 @@ export class ConcertService {
     targetSeatStatus: 'AVAILABLE' | 'HOLD' = 'AVAILABLE',
   ): Promise<Seat> {
     let seat: Seat;
-    await this.dataSource.transaction(async (manager) => {
+    await this.entityManager.transaction(async (manager) => {
       try {
         seat = await this.checkSeatStatus(
           concertId,
@@ -218,7 +220,7 @@ export class ConcertService {
     manager?: EntityManager,
   ): Promise<Seat> {
     if (!manager) {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.entityManager.transaction(async (manager) => {
         const updatedSeat = await this.seatRepository.updateSeat(
           seatId,
           seat,
