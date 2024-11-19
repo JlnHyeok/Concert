@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BusinessException } from 'src/common';
+import { BusinessException } from '../../../common';
 import { WAITING_QUEUE_ERROR_CODES } from '../error/waiting-queue.error';
 import * as jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
