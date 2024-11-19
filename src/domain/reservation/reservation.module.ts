@@ -7,14 +7,12 @@ import { RESERVATION_REPOSITORY } from './model/repository/reservation.repositor
 import { ReservationRepository } from '../../infra/repo/reservation/reservation.repo';
 import { PAYMENT_REPOSITORY } from './model/repository/payment.repository';
 import { PaymentRepository } from '../../infra/repo/reservation/payment.repo';
-import { PAYMENT_CREATED_EVENT_REPOSITORY } from './model/repository/payment.created.event.repository';
-import { PaymentCreatedEventRepository } from '../../infra/repo/reservation/payment.created.event.repo';
-import { PaymentCreatedEvent } from './model/entity/payment.created.event.entity';
+import { PAYMENT_CREATED_EVENT_REPOSITORY } from './model/repository/payment.outbox.repository';
+import { PaymentOutboxRepository } from '../../infra/repo/reservation/payment.outbox.repo';
+import { PaymentOutbox } from './model/entity/payment.outbox.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Reservation, Payment, PaymentCreatedEvent]),
-  ],
+  imports: [TypeOrmModule.forFeature([Reservation, Payment, PaymentOutbox])],
   providers: [
     ReservationService,
     {
@@ -27,7 +25,7 @@ import { PaymentCreatedEvent } from './model/entity/payment.created.event.entity
     },
     {
       provide: PAYMENT_CREATED_EVENT_REPOSITORY,
-      useClass: PaymentCreatedEventRepository,
+      useClass: PaymentOutboxRepository,
     },
   ],
   exports: [TypeOrmModule, ReservationService],
