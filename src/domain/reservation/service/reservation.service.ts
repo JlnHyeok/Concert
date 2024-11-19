@@ -17,8 +17,15 @@ import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
 import { BusinessException } from '../../../common/exception/business-exception';
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
 import { ClientKafka, EventPattern } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
-import { Kafka } from 'kafkajs';
+import {
+  IPaymentCreatedEventRepository,
+  PAYMENT_CREATED_EVENT_REPOSITORY,
+} from '../model/repository/payment.created.event.repository';
+import {
+  IPaymentCreatedEventMetadata,
+  PaymentCreatedEvent,
+  PaymentCreatedEventStatus,
+} from '../model/entity/payment.created.event.entity';
 
 @Injectable()
 export class ReservationService {
@@ -27,9 +34,9 @@ export class ReservationService {
     private readonly reservationRepository: IReservationRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
+    @Inject(PAYMENT_CREATED_EVENT_REPOSITORY)
+    private readonly paymentCreatedEventRepository: IPaymentCreatedEventRepository,
     private readonly dataSource: DataSource,
-    @Inject('KAFKA_CLIENT')
-    private readonly kafkaClient: ClientKafka,
   ) {}
 
   async getReservation(userId: number) {
@@ -42,7 +49,11 @@ export class ReservationService {
     return reservations;
   }
 
-  async getReservationByUserIdAndSeatId(userId: number, seatId: number) {
+  async getReservationByUserIdAndSeatId(
+    userId: number,
+    seatId: number,
+    manager?: EntityManager,
+  ) {
     const reservation = await this.reservationRepository.findByUserIdAndSeatId(
       userId,
       seatId,
@@ -73,7 +84,11 @@ export class ReservationService {
     return reservation;
   }
 
-  async createPayment(reservationId: number, price: number) {
+  async createPayment(
+    reservationId: number,
+    price: number,
+    manager?: EntityManager,
+  ) {
     if (price < 0) {
       throw new BusinessException(
         RESERVATION_ERROR_CODES.PRICE_INVALID,
@@ -81,8 +96,10 @@ export class ReservationService {
       );
     }
 
-    const reservation =
-      await this.reservationRepository.findById(reservationId);
+    const reservation = await this.reservationRepository.findById(
+      reservationId,
+      manager,
+    );
 
     if (!reservation) {
       throw new BusinessException(
@@ -95,12 +112,51 @@ export class ReservationService {
       reservationId,
       price,
       new Date(),
+      manager,
     );
 
     return payment;
   }
 
+  async createPaymentCreatedEvent(
+    metadata: IPaymentCreatedEventMetadata,
+    manager?: EntityManager,
+  ): Promise<PaymentCreatedEvent> {
+    const paymentCreatedEvent =
+      await this.paymentCreatedEventRepository.createPaymentCreatedEvent(
+        metadata,
+        manager,
+      );
+
+    return paymentCreatedEvent;
+  }
+
+  async updatePaymentCreatedEvent(
+    id: number,
+    status: PaymentCreatedEventStatus,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const paymentCreatedEvent =
+      await this.paymentCreatedEventRepository.updatePaymentCreatedEvent(
+        id,
+        status,
+        manager,
+      );
+
+    return paymentCreatedEvent;
+  }
+
   async deleteReservationBySeatId(seatId: number) {
     return this.reservationRepository.deleteBySeatId(seatId);
+  }
+
+  async updatePaymentCreatedEventStatus(
+    id: number,
+    status: PaymentCreatedEventStatus,
+  ) {
+    await this.paymentCreatedEventRepository.updatePaymentCreatedEvent(
+      id,
+      status,
+    );
   }
 }

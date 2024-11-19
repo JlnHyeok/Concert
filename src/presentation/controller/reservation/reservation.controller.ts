@@ -29,6 +29,7 @@ import {
 } from '@nestjs/microservices';
 import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
+import { PaymentCreatedEventStatus } from 'src/domain/reservation/model/entity/payment.created.event.entity';
 
 @ApiTags('reservation')
 @Controller('reservation')
@@ -79,5 +80,44 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
     const { userId, seatId } = body;
     token = token?.split(' ')[1];
     return await this.reservationFacade.createPayment(token, userId, seatId);
+  }
+
+  @MessagePattern('payment')
+  async paymentReply(data: { eventId: number; userId: number; price: number }) {
+    const { eventId } = data;
+    console.log('paymentReply Execute', data);
+    this.reservationFacade.InvokePaymentReply(
+      eventId,
+      PaymentCreatedEventStatus.PUBLISHED,
+    );
+  }
+
+  @MessagePattern('payment.success')
+  async paymentSuccess(data: {
+    eventId: number;
+    userId: number;
+    token: string;
+    price: number;
+  }) {
+    const { eventId, token } = data;
+    console.log('paymentSuccess Execute', 'data : ', data);
+    this.reservationFacade.InvokePaymentSucess({
+      eventId,
+      token,
+      status: PaymentCreatedEventStatus.SUCCESS,
+    });
+    return data;
+  }
+
+  @MessagePattern('payment.fail')
+  async paymentFail(data: { eventId: number; userId: number; price: number }) {
+    const { eventId, userId, price } = data;
+    console.log('paymentFail Execute', 'data : ', data);
+    this.reservationFacade.InvokePaymentFail({
+      eventId: eventId,
+      userId: userId,
+      price: price,
+    });
+    return data;
   }
 }
