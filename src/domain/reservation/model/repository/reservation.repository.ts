@@ -4,10 +4,14 @@ import { Reservation } from '../entity/reservation.entity';
 export const RESERVATION_REPOSITORY = 'RESERVATION_REPOSITORY';
 
 export interface IReservationRepository {
-  findById(id: number): Promise<Reservation>;
+  findById(id: number, manager?: EntityManager): Promise<Reservation>;
   findBySeatId(seatId: number): Promise<Reservation[]>;
   findByUserId(userId: number): Promise<Reservation[]>;
-  findByUserIdAndSeatId(userId: number, seatId: number): Promise<Reservation>;
+  findByUserIdAndSeatId(
+    userId: number,
+    seatId: number,
+    manager?: EntityManager,
+  ): Promise<Reservation>;
   createReservation(
     userId: number,
     seatId: number,

@@ -10,6 +10,7 @@ export interface IPaymentRepository {
     reservationId: number,
     price: number,
     createdAt: Date,
+    manager?: EntityManager,
   ): Promise<Payment>;
 
   createPaymentWithLock(

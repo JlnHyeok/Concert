@@ -9,8 +9,9 @@ export class SeatRepository implements ISeatRepository {
     private readonly seatRepository: Repository<Seat>,
   ) {}
 
-  async findById(id: number): Promise<Seat> {
-    return await this.seatRepository.findOne({
+  async findById(id: number, manager?: EntityManager): Promise<Seat> {
+    const entity = manager ? manager.getRepository(Seat) : this.seatRepository;
+    return await entity.findOne({
       where: { id },
     });
   }
