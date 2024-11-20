@@ -240,3 +240,10 @@ npm run test:docker
 #### 4.4 테스트 결과
 
 ![image](https://github.com/user-attachments/assets/06f2863f-ff8d-47bf-94d1-785b0e5b4a1f)
+
+### 5. 서비스 실행
+- 아래 명령어로 실행.
+```bash
+npm run start:docker
+```
+<img width="791" alt="image" src="https://github.com/user-attachments/assets/a03d60f1-8908-421f-aac4-de084c348b8c">
