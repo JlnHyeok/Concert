@@ -4,33 +4,47 @@ import Redis from 'ioredis';
 import * as jwt from 'jsonwebtoken';
 import { QueueTokenService } from './queue-token.service';
 import { BusinessException } from '../../../common';
-import { AppModule } from '../../../app.module';
-
-jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => ({
-    hget: jest.fn(),
-    hgetall: jest.fn(),
-    zrange: jest.fn(),
-    zrem: jest.fn(),
-    hset: jest.fn(),
-    hdel: jest.fn(),
-  }));
-});
-
-jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn(),
-  verify: jest.fn(),
-}));
+import { INestApplication } from '@nestjs/common';
 
 describe('QueueTokenService', () => {
+  let app: INestApplication;
   let service: QueueTokenService;
   let redisClient: jest.Mocked<Redis>;
-  let configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [],
+      providers: [
+        QueueTokenService,
+        {
+          provide: Redis,
+          useValue: {
+            hgetall: jest.fn(),
+            hget: jest.fn(),
+            zrem: jest.fn(),
+            hdel: jest.fn(),
+            zrange: jest.fn(),
+            hset: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockImplementation((key) => {
+              if (key === 'JWT_SECRET') return 'secret';
+              if (key === 'NUMBER_OF_PROCESS') return 5;
+              if (key === 'JWT_EXPIRES_IN') return '5m';
+              return null;
+            }),
+          },
+        },
+      ],
     }).compile();
+
+    app = moduleFixture.createNestApplication();
+    service = moduleFixture.get<QueueTokenService>(QueueTokenService);
+    redisClient = moduleFixture.get(Redis);
+    await app.init();
   });
 
   afterEach(() => {
@@ -71,11 +85,10 @@ describe('QueueTokenService', () => {
 
   describe('createToken', () => {
     it('should create a JWT token', () => {
-      jest.spyOn(jwt, 'verify').mockReturnValue();
-      // jwt.sign.mockReturnValue('test-token');
-
+      jest.spyOn(jwt, 'verify');
+      jest.spyOn(jwt, 'sign');
       const token = service.createToken('test-uuid');
-      expect(token).toBe('test-token');
+      expect(token).toEqual(expect.any(String));
       expect(jwt.sign).toHaveBeenCalledWith({ uuid: 'test-uuid' }, 'secret', {
         expiresIn: '5m',
       });
@@ -84,11 +97,12 @@ describe('QueueTokenService', () => {
 
   describe('verifyToken', () => {
     it('should verify token successfully', () => {
-      jest.spyOn(jwt, 'verify').mockReturnValue();
+      jest.spyOn(jwt, 'verify');
 
-      const result = service.verifyToken('test-token');
-      expect(result).toEqual({ uuid: 'test-uuid' });
-      expect(jwt.verify).toHaveBeenCalledWith('test-token', 'secret');
+      const token = service.createToken('test-uuid');
+      const result = service.verifyToken(token);
+      expect(result).toHaveProperty('uuid');
+      expect(jwt.verify).toHaveBeenCalledWith(token, 'secret');
     });
 
     it('should throw BusinessException if token is invalid', () => {

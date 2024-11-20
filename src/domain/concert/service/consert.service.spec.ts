@@ -13,9 +13,9 @@ import {
 } from '../model/repository/performance-date.repository';
 import { Seat } from '../model/entity/seat.entity';
 import { PerformanceDate } from '../model/entity/performance-date.entity';
-import { DataSource } from 'typeorm';
 import { ConcertService } from './consert.service';
 import { CONCERT_ERROR_CODES } from '../error/concert.error';
+import { EntityManager } from 'typeorm';
 
 describe('ConcertService', () => {
   let service: ConcertService;
@@ -23,7 +23,7 @@ describe('ConcertService', () => {
   let seatRepository: ISeatRepository;
   let performanceDateRepository: IPerformanceDateRepository;
   let performanceDate = new Date('2024-10-18');
-  let dataSource: DataSource;
+  let entityManager: EntityManager;
 
   const mockSeat: Seat = {
     id: 1,
@@ -63,9 +63,9 @@ describe('ConcertService', () => {
     deletePerformanceDate: jest.fn().mockResolvedValue(null),
   };
 
-  const mockDataSource = {
+  const mockEntityManager = {
     transaction: jest.fn().mockImplementation(async (callback) => {
-      return await callback(mockDataSource); // Mock the transaction callback
+      return await callback(mockEntityManager); // Mock the transaction callback
     }),
   };
 
@@ -86,8 +86,8 @@ describe('ConcertService', () => {
           useValue: mockPerformanceDateRepository,
         },
         {
-          provide: DataSource,
-          useValue: mockDataSource,
+          provide: EntityManager,
+          useValue: mockEntityManager,
         },
       ],
     }).compile();
@@ -98,7 +98,7 @@ describe('ConcertService', () => {
     performanceDateRepository = module.get<IPerformanceDateRepository>(
       PERFORMANCE_DATE_REPOSITORY,
     );
-    dataSource = module.get<DataSource>(DataSource);
+    entityManager = module.get<EntityManager>(EntityManager);
   });
 
   describe('getSeat', () => {
@@ -130,7 +130,7 @@ describe('ConcertService', () => {
       expect(seatRepository.findByConcertAndDate).toHaveBeenCalledWith(
         1,
         expect.any(Date),
-        mockDataSource, // Check the passed manager (transaction)
+        undefined, // Check the passed manager (transaction)
       );
     });
 
@@ -174,7 +174,7 @@ describe('ConcertService', () => {
       expect(seatRepository.updateSeat).toHaveBeenCalledWith(
         1,
         mockSeat,
-        mockDataSource,
+        mockEntityManager,
       ); // Check the passed manager (transaction)
     });
 

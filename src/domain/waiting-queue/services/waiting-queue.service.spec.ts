@@ -1,157 +1,212 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WaitingQueueService } from './waiting-queue.service';
-import {
-  IWaitingQueueRepository,
-  WAITING_QUEUE_REPOSITORY,
-} from '../model/repository/waiting-queue.repository';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
-import * as jwt from 'jsonwebtoken';
+import { QueueTokenService } from './queue-token.service';
+import { Redis } from 'ioredis';
 import { BusinessException } from '../../../common/exception/business-exception';
 import { WAITING_QUEUE_ERROR_CODES } from '../error/waiting-queue.error';
+import { v4 as uuidv4 } from 'uuid';
+import * as jwt from 'jsonwebtoken';
 
 describe('WaitingQueueService', () => {
-  let service: WaitingQueueService;
-  let repository: IWaitingQueueRepository;
+  let waitingQueueservice: WaitingQueueService;
+  let queueTokenService: jest.Mocked<QueueTokenService>;
+  let redisClient: jest.Mocked<Redis>;
   let configService: ConfigService;
-  let dataSource: DataSource;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WaitingQueueService,
         {
-          provide: WAITING_QUEUE_REPOSITORY,
+          provide: QueueTokenService,
           useValue: {
-            findByUUIDWithLock: jest.fn(),
-            createWaitingQueue: jest.fn(),
-            updateQueueStatus: jest.fn(),
-            findLessThanId: jest.fn(),
-            findWaitingWithLock: jest.fn(),
+            verifyToken: jest.fn(),
+            getQueueInfo: jest.fn(),
+            canProcessImmediately: jest.fn(),
+            createToken: jest.fn(),
+            calculateWaitingNumber: jest.fn(),
+            calculateRemainingTime: jest.fn(),
+            activateQueueImmediately: jest.fn(),
+            getQueueStatusResponse: jest.fn(),
+            removeExpiredProcessingKeys: jest.fn(),
+            calculateRemainingSlots: jest.fn(),
+            activateWaitingKeys: jest.fn(),
+          },
+        },
+        {
+          provide: Redis,
+          useValue: {
+            hset: jest.fn(),
+            hmset: jest.fn(),
+            zadd: jest.fn(),
+            zrange: jest.fn(),
+            flushall: jest.fn(),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key) => {
-              if (key === 'JWT_SECRET') return 'secret';
+            get: jest.fn((key: string) => {
+              if (key === 'JWT_SECRET') return 'test-secret';
+              if (key === 'JWT_EXPIRES_IN') return '5m';
               if (key === 'NUMBER_OF_PROCESS') return 5;
               return null;
             }),
           },
         },
-        { provide: DataSource, useValue: { transaction: jest.fn() } },
       ],
     }).compile();
 
-    service = module.get<WaitingQueueService>(WaitingQueueService);
-    repository = module.get<IWaitingQueueRepository>(WAITING_QUEUE_REPOSITORY);
+    waitingQueueservice = module.get<WaitingQueueService>(WaitingQueueService);
+    queueTokenService = module.get(QueueTokenService);
+    redisClient = module.get(Redis);
     configService = module.get<ConfigService>(ConfigService);
-    dataSource = module.get<DataSource>(DataSource);
   });
 
   describe('checkWaitingQueue', () => {
-    it('should return queue info when token is valid', async () => {
-      const token = jwt.sign({ uuid: 'test-uuid' }, 'secret');
-      jest.spyOn(repository, 'findByUUIDWithLock').mockResolvedValue({
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        expireAt: new Date(),
-        createdAt: new Date(),
-        activatedAt: new Date(),
-        uuid: 'test-uuid',
-      });
-      jest.spyOn(repository, 'findLessThanId').mockResolvedValue([]);
-      jest.spyOn(service, 'verifyToken').mockReturnValue({
-        uuid: 'test-uuid',
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        createdAt: new Date(),
-        activatedAt: new Date(),
-        expireAt: new Date(),
-      });
-      const result = await service.checkWaitingQueue(token);
+    it('should return waiting status and remaining time if queue is in WAITING state', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({ status: 'WAITING' });
+      queueTokenService.calculateWaitingNumber.mockResolvedValue(3);
+      queueTokenService.calculateRemainingTime.mockReturnValue(120);
 
-      expect(result).toBeUndefined();
+      const result = await waitingQueueservice.checkWaitingQueue(token);
+
+      expect(queueTokenService.verifyToken).toHaveBeenCalledWith(token);
+      expect(queueTokenService.getQueueInfo).toHaveBeenCalledWith(
+        'queue:test-uuid',
+      );
+      expect(queueTokenService.calculateWaitingNumber).toHaveBeenCalledWith(
+        'queue:test-uuid',
+      );
+      expect(result).toEqual({
+        waitingNumber: 3,
+        remainingTime: 120,
+        status: 'WAITING',
+      });
     });
 
-    it('should be undefined if queue info is not found', async () => {
-      const token = jwt.sign({ uuid: 'invalid-uuid' }, 'secret');
-      jest.spyOn(repository, 'findByUUIDWithLock').mockResolvedValue(null);
-      jest.spyOn(service, 'verifyToken').mockReturnValue({
-        uuid: 'invalid-uuid',
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        createdAt: null,
-        activatedAt: null,
-        expireAt: null,
+    it('should return queue status if not in WAITING state', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({ status: 'EXPIRED' });
+      queueTokenService.getQueueStatusResponse.mockReturnValue({
+        status: 'EXPIRED',
+        remainingTime: undefined,
+        waitingNumber: undefined,
       });
-      await expect(service.checkWaitingQueue(token)).resolves.toBeUndefined();
+
+      const result = await waitingQueueservice.checkWaitingQueue(token);
+
+      expect(queueTokenService.verifyToken).toHaveBeenCalledWith(token);
+      expect(queueTokenService.getQueueInfo).toHaveBeenCalledWith(
+        'queue:test-uuid',
+      );
+      expect(queueTokenService.getQueueStatusResponse).toHaveBeenCalled();
+      expect(result).toEqual({ status: 'EXPIRED' });
     });
 
-    it('should return status EXPIRED if queue status is expired', async () => {
-      const token = jwt.sign({ uuid: 'expired-uuid' }, 'secret');
-      jest.spyOn(repository, 'findByUUIDWithLock').mockResolvedValue({
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        expireAt: new Date(),
-        createdAt: new Date(),
-        activatedAt: new Date(),
-        uuid: 'test-uuid',
-      });
-      jest.spyOn(service, 'verifyToken').mockReturnValue({
-        uuid: 'expired-uuid',
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        createdAt: null,
-        activatedAt: null,
-        expireAt: null,
-      });
-      await service.checkWaitingQueue(token);
-    });
-
-    it('should throw BusinessException for invalid token', async () => {
+    it('should throw BusinessException if token is invalid', async () => {
       const invalidToken = 'invalid-token';
-      jest.spyOn(jwt, 'verify').mockImplementation(() => {
-        throw new Error();
+      queueTokenService.verifyToken.mockImplementation(() => {
+        throw new BusinessException(
+          WAITING_QUEUE_ERROR_CODES.TOKEN_INVALID,
+          401,
+        );
       });
 
-      await expect(service.checkWaitingQueue(invalidToken)).rejects.toThrow(
+      await expect(
+        waitingQueueservice.checkWaitingQueue(invalidToken),
+      ).rejects.toThrow(
         new BusinessException(WAITING_QUEUE_ERROR_CODES.TOKEN_INVALID, 401),
       );
     });
   });
 
   describe('expireToken', () => {
-    it('should faild update queue status to unauthorize', async () => {
-      const token = jwt.sign({ uuid: 'test-uuid' }, 'secret');
-      jest.spyOn(repository, 'findByUUIDWithLock').mockResolvedValue({
-        id: 1,
-        status: 'WAITING' as 'WAITING',
-        expireAt: new Date(),
-        createdAt: new Date(),
-        activatedAt: new Date(),
-        uuid: 'test-uuid',
-      });
-      jest.spyOn(repository, 'updateQueueStatus').mockResolvedValue(undefined);
+    it('should set queue status to EXPIRED if in WAITING state', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({ status: 'WAITING' });
 
-      await expect(service.expireToken(token)).rejects.toThrow(
-        WAITING_QUEUE_ERROR_CODES.TOKEN_INVALID.message,
+      await waitingQueueservice.expireToken(token);
+
+      expect(redisClient.hset).toHaveBeenCalledWith(
+        'queue:test-uuid',
+        'status',
+        'EXPIRED',
       );
     });
 
-    it('should throw BusinessException if queue info is not found', async () => {
-      const token = jwt.sign({ uuid: 'invalid-uuid' }, 'secret');
-      jest.spyOn(repository, 'findByUUIDWithLock').mockResolvedValue(null);
-      jest.spyOn(service, 'verifyToken').mockReturnValue({
-        uuid: 'invalid-uuid',
-        id: 1,
-        status: 'EXPIRED' as 'EXPIRED',
-        createdAt: null,
-        activatedAt: null,
-        expireAt: null,
+    it('should not update status if queue is not in WAITING state', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({
+        status: 'PROCESSING',
       });
-      await expect(service.expireToken(token)).resolves.toBeUndefined();
+
+      await waitingQueueservice.expireToken(token);
+
+      expect(redisClient.hset).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('generateToken', () => {
+    it('should create a new token and add it to the queue', async () => {
+      queueTokenService.canProcessImmediately.mockResolvedValue(false);
+      queueTokenService.createToken.mockReturnValue('new-token');
+
+      const result = await waitingQueueservice.generateToken();
+      expect(queueTokenService.createToken).toHaveBeenCalledTimes(1);
+      expect(queueTokenService.createToken).toHaveBeenCalledWith(
+        expect.any(String),
+      );
+
+      expect(redisClient.zadd).toHaveBeenCalledWith(
+        'waitingQueue',
+        expect.any(Number),
+        expect.any(String),
+      );
+      expect(result).toEqual(expect.any(String));
+    });
+
+    it('should activate queue immediately if possible', async () => {
+      const uuid = 'test-uuid';
+      queueTokenService.createToken.mockReturnValue('new-token');
+      queueTokenService.canProcessImmediately.mockResolvedValue(true);
+
+      await waitingQueueservice.generateToken();
+
+      expect(queueTokenService.activateQueueImmediately).toHaveBeenCalled();
+    });
+  });
+
+  describe('checkTokenIsProcessing', () => {
+    it('should return true if token status is PROCESSING', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({
+        status: 'PROCESSING',
+        expireAt: new Date().toISOString(),
+      });
+
+      const result = await waitingQueueservice.checkTokenIsProcessing(token);
+
+      expect(result).toBe(true);
+    });
+
+    it('should throw BusinessException if token status is not PROCESSING', async () => {
+      const token = 'valid-token';
+      queueTokenService.verifyToken.mockReturnValue({ uuid: 'test-uuid' });
+      queueTokenService.getQueueInfo.mockResolvedValue({ status: 'WAITING' });
+
+      await expect(
+        waitingQueueservice.checkTokenIsProcessing(token),
+      ).rejects.toThrow(
+        new BusinessException(WAITING_QUEUE_ERROR_CODES.TOKEN_EXPIRED, 401),
+      );
     });
   });
 });
