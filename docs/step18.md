@@ -69,11 +69,53 @@ sequenceDiagram
 ---
 
 ## 2. Payment Event 발행 및 Outbox Pattern 적용
+### PaymentOutboxRepository
+- PaymentOutbox 테이블 생성
+- 결제 정보를 저장하는 metadata 컬럼 생성.
+- payment event 가 발행되었는지, 아닌지를 나타내기 위한 status 컬럼 생성
+```ts
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
-- Application Layer 의 Reservation Facade 의 createPayment 에서 사용
-- this.kafkaClient.emit() 으로 이벤트 발행 (수신을 대기하지 않고 보내고 땡 처리)
+@Entity()
+export class PaymentOutbox {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ type: 'jsonb' })
+  metadata: IPaymentOutboxMetadata;
+
+  @Column()
+  status: PaymentOutboxStatus;
+
+  @CreateDateColumn()
+  createdAt: Date;
+}
+
+export enum PaymentOutboxStatus {
+  INIT = 'INIT',
+  PUBLISHED = 'PUBLISHED',
+  SUCCESS = 'SUCCESS',
+  FAIL = 'FAIL',
+}
+
+export interface IPaymentOutboxMetadata {
+  userId: number;
+  token: string;
+  price: number;
+  reservationId: number;
+  seatId: number;
+}
+```
+---
 
 ### createPayment (비즈니스 로직 및 이벤트 발행) 구현
+- Application Layer 의 Reservation Facade 의 createPayment 에서 사용
+- this.kafkaClient.emit() 으로 이벤트 발행 (수신을 대기하지 않고 보내고 땡 처리)
 
 ```ts
 async createPayment(
