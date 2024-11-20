@@ -83,8 +83,8 @@ export class ConcertService {
     return createdSeat;
   }
 
-  async getSeat(id: number): Promise<Seat> {
-    const seat = await this.seatRepository.findById(id);
+  async getSeat(id: number, manager?: EntityManager): Promise<Seat> {
+    const seat = await this.seatRepository.findById(id, manager);
     if (!seat) {
       throw new BusinessException(
         CONCERT_ERROR_CODES.SEAT_NOT_FOUND,

@@ -129,34 +129,45 @@ export class ReservationFacade {
     status: PaymentOutboxStatus;
   }) {
     const { eventId, status } = props;
-    const { token } = (
-      await this.reservationService.getPaymentOutboxById(eventId)
-    )?.metadata;
-    await this.reservationService.updatePaymentOutboxStatus(eventId, status);
-    this.waitingQueueService.expireToken(token);
-    // + alarm,,, slack,,,
+
+    await this.entityManager.transaction(async (manager) => {
+      const { token } = (
+        await this.reservationService.getPaymentOutboxById(eventId, manager)
+      )?.metadata;
+      await this.reservationService.updatePaymentOutboxStatus(
+        eventId,
+        status,
+        manager,
+      );
+
+      this.waitingQueueService.expireToken(token);
+      // + alarm,,, slack,,,
+    });
   }
 
   // 보상 트랜잭션
   async InvokePaymentFail(props: { eventId: number }) {
     const { eventId } = props;
-    const { userId, price, seatId } = (
-      await this.reservationService.getPaymentOutboxById(eventId)
-    )?.metadata;
+    await this.entityManager.transaction(async (manager) => {
+      const { userId, price, seatId } = (
+        await this.reservationService.getPaymentOutboxById(eventId, manager)
+      )?.metadata;
 
-    // 1. 유저 포인트 복구
-    await this.userService.chargePoint(userId, price);
+      // 1. 유저 포인트 복구
+      await this.userService.refundPoint(userId, price, manager);
 
-    // 2. 좌석 상태 변경
-    let seat = await this.concertService.getSeat(seatId);
-    seat.status = 'AVAILABLE';
-    await this.concertService.updateSeat(seatId, seat);
+      // 2. 좌석 상태 변경
+      let seat = await this.concertService.getSeat(seatId, manager);
+      seat.status = 'AVAILABLE';
+      await this.concertService.updateSeat(seatId, seat, manager);
 
-    // 3. 결제 이벤트 상태 변경
-    await this.reservationService.updatePaymentOutboxStatus(
-      eventId,
-      PaymentOutboxStatus.FAIL,
-    );
+      // 3. 결제 이벤트 상태 변경
+      await this.reservationService.updatePaymentOutboxStatus(
+        eventId,
+        PaymentOutboxStatus.FAIL,
+        manager,
+      );
+    });
   }
 
   @Cron('0 */3 * * * *')
@@ -177,7 +188,7 @@ export class ReservationFacade {
   }
 
   @Cron('0 */3 * * * *')
-  async retryFailedCreatePayment() {
+  async retryFailedPublishPayment() {
     const failedEvents =
       await this.reservationService.getAllPaymentOutboxsByStatus(
         PaymentOutboxStatus.INIT,

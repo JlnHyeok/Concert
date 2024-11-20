@@ -107,7 +107,7 @@ describe('ConcertService', () => {
 
       const seat = await service.getSeat(1);
       expect(seat).toEqual(mockSeat);
-      expect(seatRepository.findById).toHaveBeenCalledWith(1);
+      expect(seatRepository.findById).toHaveBeenCalledWith(1, undefined);
     });
 
     it('should throw NotFoundException if seat not found', async () => {

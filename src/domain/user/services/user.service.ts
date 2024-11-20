@@ -127,6 +127,17 @@ export class UserService {
     };
   }
 
+  async refundPoint(
+    userId: number,
+    point: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const user = await this.userRepository.findById(userId, manager);
+    user.balance += point;
+
+    await this.userRepository.updateUser(userId, user, manager);
+  }
+
   async getPoint(userId: number): Promise<{ balance: number }> {
     const user = await this.userRepository.findById(userId);
     this.validateUser(user);

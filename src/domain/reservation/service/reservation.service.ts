@@ -157,7 +157,11 @@ export class ReservationService {
     return this.reservationRepository.deleteBySeatId(seatId);
   }
 
-  async updatePaymentOutboxStatus(id: number, status: PaymentOutboxStatus) {
-    await this.paymentOutboxRepository.updatePaymentOutbox(id, status);
+  async updatePaymentOutboxStatus(
+    id: number,
+    status: PaymentOutboxStatus,
+    manager?: EntityManager,
+  ) {
+    await this.paymentOutboxRepository.updatePaymentOutbox(id, status, manager);
   }
 }

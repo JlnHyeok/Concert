@@ -11,8 +11,12 @@ export class UserRepository implements IUserRepository {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async findById(id: number): Promise<User> {
-    return await this.userRepository.findOne({
+  async findById(id: number, manager?: EntityManager): Promise<User> {
+    const entityManager = manager
+      ? manager.getRepository(User)
+      : this.userRepository;
+
+    return await entityManager.findOne({
       where: { id },
       relations: ['reservations'],
     });
