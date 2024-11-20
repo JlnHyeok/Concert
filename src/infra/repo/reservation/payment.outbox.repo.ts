@@ -24,6 +24,18 @@ export class PaymentOutboxRepository implements IPaymentOutboxRepository {
     });
   }
 
+  async getPaymentOutboxById(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<PaymentOutbox> {
+    const entityManager = manager
+      ? manager.getRepository(PaymentOutbox)
+      : this.paymentOutboxRepository;
+    return await entityManager.findOne({
+      where: { id },
+    });
+  }
+
   async createPaymentOutbox(
     metadata: IPaymentOutboxMetadata,
     manager: EntityManager,

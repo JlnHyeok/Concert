@@ -70,6 +70,10 @@ export class ReservationService {
     );
   }
 
+  async getPaymentOutboxById(id: number, manager?: EntityManager) {
+    return await this.paymentOutboxRepository.getPaymentOutboxById(id, manager);
+  }
+
   async createReservation(userId: number, seat: { id: number; price: number }) {
     const reservations = await this.reservationRepository.findBySeatId(seat.id);
     if (reservations.length > 0) {

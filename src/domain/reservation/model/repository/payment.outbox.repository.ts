@@ -12,6 +12,10 @@ export interface IPaymentOutboxRepository {
     status: PaymentOutboxStatus,
     manager?: EntityManager,
   ): Promise<PaymentOutbox[]>;
+  getPaymentOutboxById(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<PaymentOutbox>;
   createPaymentOutbox(
     metadata: IPaymentOutboxMetadata,
     manager?: EntityManager,
