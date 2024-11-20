@@ -14,6 +14,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
+    "test:docker": "bash ./docker/test.setup.sh && NODE_ENV=test jest && bash ./docker/test.clear.sh",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -22,7 +23,7 @@
     "migration:run": "typeorm migration:run -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:revert": "typeorm migration:revert -d src/infra/db/typeorm/typeorm.config.ts",
     "typeorm": "typeorm",
-    "start:docker": "npm run build && bash ./docker/build-and-run.sh"
+    "start:docker": "NODE_ENV=production npm run build && bash ./docker/build-and-run.sh"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.3.0",
