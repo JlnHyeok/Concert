@@ -15,22 +15,42 @@ import { UserController } from './presentation/controller/user/user.controller';
 import { ReservationController } from './presentation/controller/reservation/reservation.controller';
 import { WaitingQueueController } from './presentation/controller/waiting-queue/waiting-queue.controller';
 import { RedisModule } from './infra/redis/redis.module';
-import { ClientsModule } from '@nestjs/microservices';
-import { KAFKA_OPTION } from './common/constants/kafka';
+import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
+import { SET_KAFKA_OPTION } from './common/constants/kafka';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, // 환경변수 모듈을 글로벌로 설정
-      envFilePath: ['.env'], // 환경변수 파일 경로
+      envFilePath: [
+        // 환경변수 파일 경로 설정
+        // 테스트 환경일 경우 .env.test 파일을 사용하고,
+        // 프로덕션 환경일 경우 .env.prod 파일을 사용한다.
+        process.env.NODE_ENV == 'test'
+          ? '.env.test'
+          : process.env.NODE_ENV == 'production'
+            ? '.env.prod'
+            : '.env',
+      ], // 환경변수 파일 경로
     }),
-    ClientsModule.register({
+    ClientsModule.registerAsync({
       isGlobal: true,
+
       clients: [
         {
+          inject: [ConfigService],
           name: 'KAFKA_CLIENT',
-          ...KAFKA_OPTION,
+          useFactory: async (
+            configService: ConfigService,
+          ): Promise<KafkaOptions> => {
+            const url = configService.get<string>('KAFKA_URL', 'localhost');
+            const port = configService.get<string>('KAFKA_PORT', '9092');
+
+            return {
+              ...SET_KAFKA_OPTION(url, port),
+            };
+          },
         },
       ],
     }),
