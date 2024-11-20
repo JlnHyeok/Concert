@@ -6,7 +6,6 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 import { Reservation } from '../../../domain/reservation/model/entity/reservation.entity';
-import { Payment } from '../../../domain/reservation/model/entity/payment.entity';
 import { ClientKafka } from '@nestjs/microservices';
 import { timeout } from 'rxjs';
 import {

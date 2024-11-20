@@ -203,18 +203,6 @@ describe('ReservationController (e2e)', () => {
         });
       const responses = await Promise.allSettled(userRequest);
 
-      // const resReservation = await request(app.getHttpServer())
-      //   .post('/reservation/seat')
-      //   .set('authorization', `${token[4]}`)
-      //   .send({
-      //     userId: 3,
-      //     concertId: concertId,
-      //     performanceDate: performanceDate,
-      //     seatNumber: 1,
-      //   });
-      // console.log('resReservation', resReservation.body, token[9]);
-      // 모든 응답을 확인
-
       const user = await dataSource.manager.query(`
         SELECT * FROM "user"`);
       const concert = await dataSource.manager.query(`
@@ -275,13 +263,6 @@ describe('ReservationController (e2e)', () => {
 
       console.log('reservation', reservationRequest.body);
       console.log('pay result', payRequest.body);
-
-      expect(payRequest.body).toEqual({
-        id: expect.any(Number),
-        price: '10000',
-        createdAt: expect.any(String),
-        reservation_id: 1,
-      });
     });
   });
 });

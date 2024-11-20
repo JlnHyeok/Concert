@@ -48,16 +48,6 @@ describe('ReservationService', () => {
     getAllPaymentOutboxByStatus: jest.fn(),
   };
 
-  const mockDataSource = {
-    transaction: jest.fn((callback) =>
-      callback({
-        findOne: jest.fn(),
-        find: jest.fn(),
-        save: jest.fn(),
-      }),
-    ),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -74,8 +64,6 @@ describe('ReservationService', () => {
           provide: PAYMENT_OUTBOX_REPOSITORY,
           useValue: mockPaymentOutboxRepository,
         },
-
-        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
