@@ -36,3 +36,6 @@ sequenceDiagram
         Concert->>Reservation: paymentOutbox 상태 Fail로 변경
     end
 ```
+
+## Test 결과
+![image](https://github.com/user-attachments/assets/06f2863f-ff8d-47bf-94d1-785b0e5b4a1f)
