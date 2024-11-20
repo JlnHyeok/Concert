@@ -111,7 +111,7 @@ export class ReservationFacade {
           key: `payment_reservation_${reservation.id}`,
           value: {
             eventId: paymentOutbox.id,
-            metadata,
+            // metadata,
           },
         })
         .pipe(timeout(5000));
@@ -126,22 +126,23 @@ export class ReservationFacade {
 
   async InvokePaymentSucess(props: {
     eventId: number;
-    token: string;
     status: PaymentOutboxStatus;
   }) {
-    const { eventId, token, status } = props;
+    const { eventId, status } = props;
+    const { token } = (
+      await this.reservationService.getPaymentOutboxById(eventId)
+    )?.metadata;
     await this.reservationService.updatePaymentOutboxStatus(eventId, status);
     this.waitingQueueService.expireToken(token);
     // + alarm,,, slack,,,
   }
 
   // 보상 트랜잭션
-  async InvokePaymentFail(props: {
-    eventId: number;
-    metadata: IPaymentOutboxMetadata;
-  }) {
-    const { eventId, metadata } = props;
-    const { userId, price, seatId } = metadata;
+  async InvokePaymentFail(props: { eventId: number }) {
+    const { eventId } = props;
+    const { userId, price, seatId } = (
+      await this.reservationService.getPaymentOutboxById(eventId)
+    )?.metadata;
 
     // 1. 유저 포인트 복구
     await this.userService.chargePoint(userId, price);

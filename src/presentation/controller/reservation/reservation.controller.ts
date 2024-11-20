@@ -83,11 +83,10 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
 
   @MessagePattern('payment.success')
   async paymentSuccess(data: PaymentOutboxRequestCommonDto) {
-    const { eventId, metadata } = data;
+    const { eventId } = data;
     console.log('paymentSuccess Execute', 'data : ', data);
     this.reservationFacade.InvokePaymentSucess({
       eventId,
-      token: metadata.token,
       status: PaymentOutboxStatus.SUCCESS,
     });
     return data;
@@ -95,11 +94,10 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
 
   @MessagePattern('payment.fail')
   async paymentFail(data: PaymentOutboxRequestCommonDto) {
-    const { eventId, metadata } = data;
+    const { eventId } = data;
     console.log('paymentFail Execute', 'data : ', data);
     this.reservationFacade.InvokePaymentFail({
       eventId: eventId,
-      metadata,
     });
     return data;
   }
