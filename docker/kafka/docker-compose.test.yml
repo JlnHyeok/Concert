@@ -1,7 +1,9 @@
 version: '3.8'
 
+name: kafka_test
+
 networks:
-  local_network:
+  network:
 
 volumes:
   Kafka00:
@@ -12,12 +14,12 @@ volumes:
     driver: local
 
 services:
-  Kafka00Service:
+  Kafka00ServiceTest:
     image: bitnami/kafka:3.7.1
     restart: unless-stopped
-    container_name: Kafka00Service
+    container_name: Kafka00ServiceTest
     ports:
-      - '10000:9094'
+      - '11111:9094'
     environment:
       # Kafka 브로커 토픽 자동 생성을 활성화하는지 여부 (true 또는 false)
       # - 클라이언트가 존재하지 않는 토픽에 메시지를 게시하거나 구독하려고 할 때 토픽을 자동으로 생성할지 여부를 나타낸다. 테스트 목적으로 true로 설정
@@ -36,7 +38,7 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=MyKafkaKraftClusterIDv
 
       # 컨트롤러 쿼럼 설정 (이 Raft 클러스터의 컨트롤러 쿼럼 구성원을 지정합니다.) - 클러스터 내의 모든 브로커가 컨트롤러 역할을 수행할 수 있음을 나타낸다.
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00Service:9093,1@Kafka01Service:9093,2@Kafka02Service:9093
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00ServiceTest:9093,1@Kafka01ServiceTest:9093,2@Kafka02ServiceTest:9093
 
       # 브로커가 수행할 역할 정의 (controller, broker)
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
@@ -50,7 +52,7 @@ services:
 
       # Kafka 브로커가 사용할 리스너 지정 - 브로커가 사용하는 리스너를 정의하고, 외부 클라이언트가 브로커에 연결할 때 사용할 주소를 지정한다.
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka00Service:9092,EXTERNAL://127.0.0.1:10000
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka00ServiceTest:9092,EXTERNAL://127.0.0.1:11111
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
 
       # 컨트롤러 브로커의 리스너를 지정 하는데 사용. 클러스터에서 컨트롤러 역할을 수행하는 브로커가 어떤 네트워크 인터페이스를 통해 다른 브로커와 통신할 지 결정
@@ -80,23 +82,21 @@ services:
       # - 트랜잭션 상태 로그의 최소 ISR 수를 2로 설정하면 트랜잭션 상태 로그의 각 파티션이 최소 2개의 동기화된 복제본을 가져야 함을 의미.
       # - ISR 의 수가 설정된 최소 ISR 수보다 작아지면 해당 파티션에 새로운 메시지를 쓰지 않음.
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=2
-      - KAFKA_NUM_PARTITIONS=3
 
     networks:
-      - local_network
-
+      - network
     volumes:
       - Kafka00:/bitnami/kafka
       - ./kafka-env.sh:/opt/bitnami/kafka/scripts/kafka-env.sh
       - ./kraft:/opt/bitnami/kafka/config/kraft
       # - ./log4j.properties:/opt/bitnami/kafka/config/log4j.properties
 
-  Kafka01Service:
+  Kafka01ServiceTest:
     image: bitnami/kafka:3.7.1
     restart: unless-stopped
-    container_name: Kafka01Service
+    container_name: Kafka01ServiceTest
     ports:
-      - '10001:9094'
+      - '11112:9094'
     environment:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
 
@@ -106,7 +106,7 @@ services:
       - KAFKA_CFG_BROKER_ID=1
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_KRAFT_CLUSTER_ID=MyKafkaKraftClusterIDv
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00Service:9093,1@Kafka01Service:9093,2@Kafka02Service:9093
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00ServiceTest:9093,1@Kafka01ServiceTest:9093,2@Kafka02ServiceTest:9093
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
 
       ##########################
@@ -114,7 +114,7 @@ services:
       ##########################
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka01Service:9092,EXTERNAL://127.0.0.1:10001
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka01ServiceTest:9092,EXTERNAL://127.0.0.1:11112
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
 
@@ -125,22 +125,20 @@ services:
       - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=3
       - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=3
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=2
-      - KAFKA_NUM_PARTITIONS=3
     networks:
-      - local_network
-
+      - network
     volumes:
       - Kafka01:/bitnami/kafka
       - ./kafka-env.sh:/opt/bitnami/kafka/scripts/kafka-env.sh
       - ./kraft:/opt/bitnami/kafka/config/kraft
       # - ./log4j.properties:/opt/bitnami/kafka/config/log4j.properties
 
-  Kafka02Service:
+  Kafka02ServiceTest:
     image: bitnami/kafka:3.7.1
     restart: unless-stopped
-    container_name: Kafka02Service
+    container_name: Kafka02ServiceTest
     ports:
-      - '10002:9094'
+      - '11113:9094'
     environment:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
 
@@ -150,7 +148,7 @@ services:
       - KAFKA_CFG_BROKER_ID=2
       - KAFKA_CFG_NODE_ID=2
       - KAFKA_KRAFT_CLUSTER_ID=MyKafkaKraftClusterIDv
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00Service:9093,1@Kafka01Service:9093,2@Kafka02Service:9093
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@Kafka00ServiceTest:9093,1@Kafka01ServiceTest:9093,2@Kafka02ServiceTest:9093
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
 
       ##########################
@@ -158,7 +156,7 @@ services:
       ##########################
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka02Service:9092,EXTERNAL://127.0.0.1:10002
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://Kafka02ServiceTest:9092,EXTERNAL://127.0.0.1:11113
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
 
@@ -169,31 +167,10 @@ services:
       - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=3
       - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=3
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=2
-      - KAFKA_NUM_PARTITIONS=3
     networks:
-      - local_network
-
+      - network
     volumes:
       - Kafka02:/bitnami/kafka
       - ./kafka-env.sh:/opt/bitnami/kafka/scripts/kafka-env.sh
       - ./kraft:/opt/bitnami/kafka/config/kraft
       # - ./log4j.properties:/opt/bitnami/kafka/config/log4j.properties
-
-  KafkaWebUiService:
-    image: provectuslabs/kafka-ui:latest
-    restart: always
-    container_name: KafkaWebUiContainer
-    ports:
-      - '8085:8080' # 호스트의 8085 포트를 컨테이너의 8080 포트에 바인딩
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=Local-Kraft-Cluster
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=Kafka00Service:9092,Kafka01Service:9092,Kafka02Service:9092
-      - DYNAMIC_CONFIG_ENABLED=true
-      - KAFKA_CLUSTERS_0_AUDIT_TOPICAUDITENABLED=true
-      - KAFKA_CLUSTERS_0_AUDIT_CONSOLEAUDITENABLED=true
-    depends_on:
-      - Kafka00Service
-      - Kafka01Service
-      - Kafka02Service
-    networks:
-      - local_network
