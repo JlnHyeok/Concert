@@ -32,8 +32,6 @@ export class ReservationController implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    this.kafkaClient.subscribeToResponseOf('reservation');
-
     await this.kafkaClient.connect();
   }
 
