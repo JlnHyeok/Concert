@@ -12,6 +12,17 @@ export class CreateConcertResponseDto {
   location: string;
 }
 
+export class GetAllConcertsResponseDto {
+  @ApiProperty({ description: '공연 ID' })
+  id: number;
+
+  @ApiProperty({ description: '공연 이름' })
+  name: string;
+
+  @ApiProperty({ description: '공연 위치' })
+  location: string;
+}
+
 export class CreatePerforamnceDateResponseDto {
   @ApiProperty({ description: '공연 날짜 ID' })
   id: number;

@@ -16,7 +16,7 @@ import { HttpExceptionFilter } from './common';
       isGlobal: true, // 환경변수 모듈을 글로벌로 설정
       envFilePath: ['.env'], // 환경변수 파일 경로
     }),
-    ScheduleModule.forRoot(), //
+    ScheduleModule.forRoot(),
     DatabaseModule,
     FacadeModule,
   ],
