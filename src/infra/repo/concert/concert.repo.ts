@@ -12,6 +12,22 @@ export class ConcertRepository implements IConcertRepository {
     return await this.concertRepository.find();
   }
 
+  async seedConcerts(): Promise<void> {
+    const concerts = [];
+
+    for (let i = 1; i <= 100_000; i++) {
+      const concert = new Concert();
+      concert.name = `Concert ${i}`;
+      concert.location = `Location ${i % 100}`;
+      concerts.push(concert);
+
+      if (concerts.length === 1000) {
+        await this.concertRepository.save(concerts);
+        concerts.length = 0;
+      }
+    }
+  }
+
   async createConcert(name: string, location: string): Promise<Concert> {
     const concert = {
       name,

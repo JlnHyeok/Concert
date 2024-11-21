@@ -59,11 +59,12 @@ export class ReservationFacade {
 
     const seat = seats.find((s) => s.seatNumber === seatNumber);
 
-    if (seat?.status !== 'AVAILABLE')
+    if (seat?.status !== 'AVAILABLE') {
       throw new BusinessException(
         COMMON_ERRORS.NOT_FOUND,
         HttpStatus.NOT_FOUND,
       );
+    }
 
     seat.status = 'HOLD';
 
