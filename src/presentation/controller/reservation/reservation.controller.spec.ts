@@ -115,6 +115,7 @@ describe('ReservationController (e2e)', () => {
         price: 10000,
       });
   });
+
   afterEach(async () => {
     await waitingQueueService.deleteAll();
     await dataSource.manager.query(
@@ -214,12 +215,6 @@ describe('ReservationController (e2e)', () => {
       const reservation = await dataSource.manager.query(`
         SELECT * FROM "reservation"`);
 
-      console.log('user', user);
-      console.log('concert', concertId, concert);
-      console.log('performanceDate', performanceDate, performanceDateRes);
-      console.log('seat', seat);
-      console.log('reservation', reservation);
-
       // responses.forEach((response, index) => {
       //   if (index == 0) {
       //     expect(response.status).toBe(HttpStatus.CREATED); // 예약이 성공적으로 생성되어야 함
@@ -230,9 +225,9 @@ describe('ReservationController (e2e)', () => {
     });
   });
 
-  // 결제 동시성 처리 테스트
+  // 결제 처리 테스트
   describe('/reservation/payment', () => {
-    it('should handle concurrent payment requests', async () => {
+    it('should handle payment requests', async () => {
       // const userRequests: Promise<any>[] = [];
       // let timer: NodeJS.Timeout;
       let issuedToken: string;
@@ -260,9 +255,6 @@ describe('ReservationController (e2e)', () => {
           userId: 1,
           seatId: Number(createdSeatRes.body.id),
         });
-
-      console.log('reservation', reservationRequest.body);
-      console.log('pay result', payRequest.body);
     });
   });
 });

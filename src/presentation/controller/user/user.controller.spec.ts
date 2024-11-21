@@ -33,16 +33,13 @@ describe('UserController (e2e)', () => {
 
   afterAll(async () => {
     // 테스트 데이터 정리
-    await dataSource.manager.query(`
-      DELETE FROM "user" CASCADE;`);
-    await dataSource.manager.query(`
-      DELETE FROM "balance" CASCADE;`);
     await dataSource.manager.query(
       'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
     );
     await dataSource.manager.query(
       'TRUNCATE TABLE balance RESTART IDENTITY CASCADE',
     );
+    await dataSource.destroy();
     await app.close();
   });
 

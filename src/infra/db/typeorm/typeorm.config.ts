@@ -57,7 +57,8 @@ export const dataSource = new DataSource({
     Reservation,
     Concert,
     PerformanceDate,
+    PaymentOutbox,
   ],
-  synchronize: process.env.DB_SYNC === 'false',
+  synchronize: process.env.DB_SYNC === 'true',
   logging: process.env.DB_LOGGING === 'true',
 });
