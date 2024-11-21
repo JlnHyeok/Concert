@@ -1,5 +1,47 @@
 # KAFKA CONFIG OPTIONS & 설정
 
+## 0. 개요
+- Kafka 가 드디어 동물원을 탈출하고 Kraft Mode 라는게 새로 나왔길래 그에 맞춰 적용해보았습니다. (공식문서에 따르면 zookeeper는 kafka 4.0 부터 지원이 중단될 예정이라고 한다.)
+# 
+
+### 0.1 들어가기에 앞서..
+
+#### 0.1.1 ZooKeeper란?
+#
+- ZooKeeper 는 ZooKeeper Ensemble과 Kafka Cluster 가 존재하며, Kafka Cluster 중 하나의 브로커가 컨트롤러 역할을 하게 됨.
+- 컨트롤러는 파티션의 리더를 선출 및 리더 선출 정보를 브로커에게 전달하며 ZooKeeper에 리더 정보 기록 역할 담당.
+- 컨트롤러의 선출 작업은 ZooKeeper 를 통해 이루어지며, ZooKeeper 의 임시노드에 가장 먼저 연결된 브로커가 컨트롤러 역할을 함.
+- Kafka 자체가 아닌 외부에서 메타데이터를 관리하여 Kafka 확장성에 한계가 있다.
+
+<img width="388" alt="image" src="https://github.com/user-attachments/assets/49e7eb98-b37c-4e43-b968-879c694d031b">
+
+---
+
+#### 0.1.2 Kraft란?
+#
+- KRaft 에서는 ZooKeeper의 의존성을 제거하고, Kafka 단일 어플리케이션 내에서 메타데이터 관리 기능을 수행하는 독립적인 구조
+- 메타데이터를 Kafka 자체에서 관리하기 때문에 메타데이터의 일관성과 안정성 보장 및 확장성이 좋아짐.
+- ZooKeeper 에서 1개이던 컨트롤러가 3개로 늘어나고, 이들 중 하나의 컨트롤러가 액티브 컨트롤러이면서 리더 역할 담당
+- 액티브 컨트롤러가 장애 또는 종료되는 경우, 새로운 액티브 컨트롤러 선출
+
+<img width="410" alt="image" src="https://github.com/user-attachments/assets/d76fa0f0-76a5-4c3f-afcf-ac51fb008910">
+
+---
+
+### 0.2 Kraft 의 성능
+- KRaft의 주요 성능 개선 중 하나는 파티션 리더 선출 작업의 최적화이다.
+- 소수의 파티션에 대한 리더 선출은 Kafka 혹은 Client들에게 별 다른 영향이 없으나, 대량의 파티션에 대한 리더 선출은 다소 시간이 소요될 수 있다.
+- ZooKeeper 모드의 경우, Kafka Cluster 전체의 파티션 제한은 약 200,000개 정도였으나, 리더 선출 과정을 개선한 KRaft 모드에서는 훨씬 더 많은 파티션 생성 가능
+
+#### Confluent 에서 공개한 Kraft Mode 와 Zookeeper Mode 의 속도 비교
+<img width="450" alt="image" src="https://github.com/user-attachments/assets/b63ecf49-935f-45f0-bec8-f8975afa9637">
+
+#### 왜 이러한 차이가 나는 것일까..?
+- 이러한 속도 차이가 나는 이유는 KRaft 모드에서 컨트롤러는 메모리 내에 메타데이터 캐시를 유지하고 있으며, ZooKeeper의 의존성도 제거하여 내부적으로 메타데이터의 동기화과 관리 과정을 효율적으로 개선했기 때문.
+- 또한 최신 메타데이터가 메모리에 유지되고 있으므로, 액티브 컨트롤러 장애 시 메타데이터 복제 시간도 줄어들어 보다 효율적인 리더 선출 
+
+---
+
 ## 1. DOCKER-COMPOSE 에서 사용할 환경 변수 지정 (CUSTOM)
 
 ```bash
