@@ -24,4 +24,5 @@ export interface ISeatRepository {
   ): Promise<Seat>;
   deleteSeat(id: number): Promise<void>;
   deleteSeatByConcertId(concertId: number): Promise<void>;
+  seedSeats(): Promise<void>;
 }

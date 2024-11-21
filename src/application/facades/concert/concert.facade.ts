@@ -16,6 +16,14 @@ export class ConcertFacade {
     await this.concertService.seedConcerts();
   }
 
+  async seedPerformanceDates() {
+    await this.concertService.seedPerformanceDates();
+  }
+
+  async seedSeats() {
+    await this.concertService.seedSeats();
+  }
+
   async createPerformanceDate(concertId: number, performanceDate: Date) {
     const res = await this.concertService.createPerformanceDate(
       concertId,

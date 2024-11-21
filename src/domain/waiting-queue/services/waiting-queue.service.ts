@@ -86,6 +86,7 @@ export class WaitingQueueService {
     const now = new Date();
     const processingKeys = await this.redisClient.zrange('waitingQueue', 0, -1);
 
+    if (processingKeys.length === 0) return;
     await this.removeExpiredProcessingKeys(processingKeys, now);
     const remainingSlots = await this.calculateRemainingSlots(processingKeys);
 
