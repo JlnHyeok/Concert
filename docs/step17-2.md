@@ -247,9 +247,7 @@ npm run test:docker
 
 
 #### 4.4 테스트 결과
-
 <img width="544" alt="image" src="https://github.com/user-attachments/assets/c9affcf7-eb54-4a9a-8820-67ad9f5d20b0">
-
 
 ### 5. 서비스 실행
 - 서비스 실행 시, 각각의 컨테이너 (Concert_Server, Kafka, Redis, PostgreSQL, Concert_Payment_Api_Server) 가 실행됩니다.
@@ -258,3 +256,136 @@ npm run test:docker
 npm run start:docker
 ```
 <img width="791" alt="image" src="https://github.com/user-attachments/assets/a03d60f1-8908-421f-aac4-de084c348b8c">
+
+### 6. [SUB] 테스트 및 서비스 실행 Script
+#### 6.1 테스트 SCRIPT
+##### test.setup.sh
+```bash
+#!/bin/bash
+
+# KAFKA SETUP
+docker compose -f ./docker/kafka/docker-compose.test.yml up -d
+
+# BUILD AND RUN
+docker build -t concert_test_postgres -f ./docker/postgres/Dockerfile  .
+docker build -t concert_test_redis -f ./docker/redis/Dockerfile .
+docker build -t concert_test_payment_api -f ./docker/payment_server/Dockerfile ./docker/payment_server
+
+docker run -d --restart always --name Concert_test_postgres -p 5555:5432  --network kafka_test_network concert_test_postgres
+docker run -d --restart always --name Concert_test_redis -p 6666:6379  --network kafka_test_network -e ALLOW_EMPTY_PASSWORD=yes concert_test_redis
+docker run -d --restart always --name Concert_test_payment_api -p 4444:4000  --network kafka_test_network -e NODE_ENV=test concert_test_payment_api
+
+sleep 5
+```
+
+##### test.clear.sh
+```bash
+#!/bin/bash
+
+# KAFKA CLEAR
+docker compose -f ./docker/kafka/docker-compose.test.yml down
+
+# CONTAINER CLEAR
+docker rm -f Concert_test_postgres
+docker rm -f Concert_test_redis
+docker rm -f Concert_test_payment_api
+
+# IMAGE CLEAR
+docker rmi concert_test_postgres
+docker rmi concert_test_redis
+docker rmi concert_test_payment_api
+
+# VOLUME CLEAR
+docker volume rm $(docker volume ls -qf dangling=true)
+docker volume rm $(docker volume ls -qf dangling=true)
+docker volume rm $(docker volume ls -qf dangling=true)
+
+# NETWORK CLEAR
+docker network rm concert_test_network
+docker network rm kafka_test_network
+```
+##### .env.test
+```bash
+# DB CONFIG
+DB_HOST=localhost
+DB_PORT=5555
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=concert
+DB_SYNC=true
+DB_LOGGING=true
+
+# JWT CONFIG
+JWT_SECRET=SeCReT_kEY
+JWT_EXPIRES_IN=5m
+
+NUMBER_OF_PROCESS=5
+
+# REDIS CONFIG
+REDIS_HOST=localhost
+REDIS_PORT=6666
+CACHE_TTL=180000
+CACHE_MAX=1000
+
+# KAFKA CONFIG
+KAFKA_URL=localhost
+KAFKA_PORT=11111
+KAFKAJS_NO_PARTITIONER_WARNING=1
+```
+
+##### npm run test:docker
+```bash
+"test:docker": "bash ./docker/test.setup.sh && NODE_ENV=test jest --forceExit && bash ./docker/test.clear.sh",
+```
+---
+#### 6.2 서비스 SCRIPT
+
+##### build-and-run.sh
+```bash
+#!/bin/bash
+docker compose -f ./docker/kafka/docker-compose.yml up -d
+
+docker build -t concert_postgres -f ./docker/postgres/Dockerfile  .
+docker build -t concert_redis -f ./docker/redis/Dockerfile .
+docker build -t concert_payment_api -f ./docker/payment_server/Dockerfile ./docker/payment_server
+docker build -t concert_main_server .
+
+docker run -d --restart always --name Concert_postgres -p 5432:5432 --network kafka_local_network concert_postgres
+docker run -d --restart always --name Concert_redis -p 6379:6379 --network kafka_local_network -e ALLOW_EMPTY_PASSWORD=yes concert_redis
+docker run -d --restart always --name Concert_payment_api -p 4000:4000 --network kafka_local_network concert_payment_api
+docker run -d --restart always --name Concert_main -p 3000:3000 -v ./.env.prod:/was/.env --network kafka_local_network concert_main_server
+```
+
+##### .env.prod
+```bash
+# DB CONFIG
+DB_HOST=Concert_postgres # WHEN BUILD TO DOCKER IMAGE
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=concert
+DB_SYNC=true
+DB_LOGGING=true
+
+# JWT CONFIG
+JWT_SECRET=SeCReT_kEY
+JWT_EXPIRES_IN=5m
+
+NUMBER_OF_PROCESS=5
+
+# REDIS CONFIG
+REDIS_HOST=Concert_redis # WHEN BUILD TO DOCKER IMAGE
+REDIS_PORT=6379
+CACHE_TTL=180000
+CACHE_MAX=1000
+
+# KAFKA CONFIG
+KAFKA_URL=Kafka00Service
+KAFKA_PORT=9092 # WHEN BUILD TO DOCKER IMAGE
+KAFKAJS_NO_PARTITIONER_WARNING=1
+```
+
+##### npm run start:docker
+```bash
+"start:docker": "NODE_ENV=production npm run build && bash ./docker/build-and-run.sh"
+```
