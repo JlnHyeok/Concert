@@ -291,6 +291,7 @@ export KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR="${KAFKA_CFG_TRANSACTION_STATE_LO
 ## 3. KRAFT 용 CONFIG 파일 작성
 
 - CUSTOM 한 환경 변수 적용을 위해 CONFIG 파일 작성
+- broker.properties, server.properties, controller.properties 작성 필요
 
 ```bash
 ### Ex) kraft/broker.properties
