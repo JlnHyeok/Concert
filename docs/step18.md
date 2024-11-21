@@ -70,7 +70,7 @@ sequenceDiagram
 
 ## 2. Payment Event 발행 및 Outbox Pattern 적용
 ### PaymentOutboxRepository
-- PaymentOutbox 테이블 생성
+- PaymentOutbox 테이블 생성. 추후 MSA 로 분리될 경우를 생각하여 해당 Domain 에 만들어주었습니다.
 - 결제 정보를 저장하는 metadata 컬럼 생성.
 - payment event 가 발행되었는지, 아닌지를 나타내기 위한 status 컬럼 생성
 ```ts
