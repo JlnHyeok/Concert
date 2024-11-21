@@ -6,6 +6,10 @@ import { Injectable, Inject, HttpStatus } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { BusinessException } from '../../../common/exception/business-exception';
 import { COMMON_ERRORS } from '../../../common/constants/error';
+import { DataSource } from 'typeorm';
+import { Seat } from '../../../domain/concert/model/entity/seat.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { RESERVATION_EVENT } from '../../../common/events/reservation/reservation-event';
 
 @Injectable()
 export class ReservationFacade {
@@ -18,6 +22,7 @@ export class ReservationFacade {
     private readonly concertService: ConcertService,
     @Inject(ReservationService)
     private readonly reservationService: ReservationService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async createReservation({
@@ -33,91 +38,75 @@ export class ReservationFacade {
     performanceDate: Date;
     seatNumber: number;
   }) {
-    const tokenInfo = await this.waitingQueueService.checkWaitingQueue(token);
+    await this.waitingQueueService.checkTokenIsProcessing(token);
 
-    if (tokenInfo?.status !== 'PROCESSING') {
-      throw new BusinessException(
-        COMMON_ERRORS.UNAUTHORIZED,
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    let expired = new Date(tokenInfo.expireAt);
-    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
-
-    if (parsedExpired.toISOString() < new Date().toISOString()) {
-      throw new BusinessException(
-        COMMON_ERRORS.UNAUTHORIZED,
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const seats = await this.concertService.getSeats(
+    const seat = await this.concertService.checkAndUpdateSeatStatus(
       concertId,
       performanceDate,
+      seatNumber,
+      'AVAILABLE',
     );
 
-    const seat = seats.find((s) => s.seatNumber === seatNumber);
-
-    if (seat?.status !== 'AVAILABLE') {
-      throw new BusinessException(
-        COMMON_ERRORS.NOT_FOUND,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    seat.status = 'HOLD';
-
-    // 현재 시간에서 5분 후로 설정 코드 작성
-    seat.releaseAt = new Date(
-      new Date().setMinutes(new Date().getMinutes() + 5),
+    const reservation = this.reservationService.createReservation(
+      userId,
+      seat.id,
     );
-    await this.concertService.updateSeat(seat.id, seat);
 
-    return this.reservationService.createReservation(userId, seat.id);
+    // RESERVATION COMPLETED EVENT
+    this.eventEmitter.emit(RESERVATION_EVENT.RESERVATION_COMPLETED, {
+      reservation,
+    });
+
+    return reservation;
+    //#endregion
   }
 
   async createPayment(token: string, userId: number, seatId: number) {
     // await this.checkActivatedToken(token);
-    const tokenInfo = await this.waitingQueueService.checkWaitingQueue(token);
-    if (tokenInfo.status !== 'PROCESSING') {
-      throw new BusinessException(
-        COMMON_ERRORS.UNAUTHORIZED,
-        HttpStatus.UNAUTHORIZED,
+    //#region 1. CHECK TOKEN
+    await this.waitingQueueService.checkTokenIsProcessing(token);
+    //#endregion
+
+    //#region 2. CHECK SEAT AND RESERVATION
+    const seat = await this.concertService.checkSeatStatusBySeatId(
+      seatId,
+      'HOLD',
+    );
+
+    const reservation =
+      await this.reservationService.getReservationByUserIdAndSeatId(
+        userId,
+        seatId,
       );
+    //#endregion
+
+    // 3. 외부 서비스 호출
+    try {
+      this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_EXTERNAL_INVOKE, {
+        userId,
+        token,
+        price: seat.price,
+      });
+    } catch (e) {
+      throw new BusinessException(COMMON_ERRORS.EXTERNAL_PAYMENT_SERVICE_ERROR);
     }
 
-    let expired = new Date(tokenInfo.expireAt);
-    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
+    seat.status = 'RESERVED';
+    await this.concertService.updateSeat(seat.id, seat);
 
-    if (parsedExpired.toISOString() < new Date().toISOString()) {
-      throw new BusinessException(
-        COMMON_ERRORS.UNAUTHORIZED,
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const seat = await this.concertService.getSeat(seatId);
-
-    if (seat.status !== 'HOLD') {
-      throw new BusinessException(
-        COMMON_ERRORS.NOT_FOUND,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const reservations = await this.reservationService.getReservation(userId);
-
-    const reservation = reservations.find((r) => r?.seat?.id === seatId);
-
-    await this.userService.usePoint(userId, seat.price);
+    // 4. DB UPDATE
     const payment = await this.reservationService.createPayment(
       reservation.id,
       seat.price,
     );
 
-    seat.status = 'RESERVED';
-    await this.concertService.updateSeat(seat.id, seat);
+    // PAYMENT COMPLETED EVENT
+    this.eventEmitter.emit(RESERVATION_EVENT.PAYMENT_COMPLETED, {
+      reservation: reservation,
+      price: seat.price,
+    });
+
+    // 5. 대기열 토큰 만료
     this.waitingQueueService.expireToken(token);
 
     return payment;
@@ -126,6 +115,9 @@ export class ReservationFacade {
   @Cron('0 */3 * * * *')
   async releaseHoldSeat() {
     const seats = await this.concertService.getAllSeats();
+
+    if (seats.length === 0) return;
+
     const holdSeats = seats.filter((seat) => seat.status === 'HOLD');
     const now = new Date();
     for (const seat of holdSeats) {

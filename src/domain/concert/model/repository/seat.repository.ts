@@ -9,8 +9,14 @@ export interface ISeatRepository {
   findByConcertAndDate(
     concertId: number,
     performanceDate: Date,
-    manager: EntityManager,
+    manager?: EntityManager,
   ): Promise<Seat[] | null>;
+  findByConcertAndDateAndSeatNumber(
+    concertId: number,
+    performanceDate: Date,
+    seatNumber: number,
+    manager: EntityManager,
+  ): Promise<Seat | null>;
   createSeat(seat: {
     concertId: number;
     performanceDate: Date;

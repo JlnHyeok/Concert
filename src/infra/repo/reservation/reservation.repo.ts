@@ -29,6 +29,15 @@ export class ReservationRepository implements IReservationRepository {
     });
   }
 
+  async findByUserIdAndSeatId(
+    userId: number,
+    seatId: number,
+  ): Promise<Reservation> {
+    return await this.reservationRepository.findOne({
+      where: { user: { id: userId }, seat: { id: seatId } },
+    });
+  }
+
   async createReservation(
     userId: number,
     seatId: number,

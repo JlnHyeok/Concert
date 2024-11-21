@@ -10,6 +10,7 @@ import { ReservationController } from '../../presentation/controller/reservation
 import { WaitingQueueController } from '../../presentation/controller/waiting-queue/waiting-queue.controller';
 import { UserController } from '../../presentation/controller/user/user.controller';
 import { RedisModule } from '../../infra/redis/redis.module';
+import { ReservationEventListener } from '../../common/events/reservation/listener/reservation-event-listener';
 
 @Module({
   imports: [DomainModule, RedisModule],
@@ -19,6 +20,7 @@ import { RedisModule } from '../../infra/redis/redis.module';
     ConcertFacade,
     UserFacade,
     WaitingQueueFacade,
+    ReservationEventListener,
   ],
   controllers: [
     ConcertController,

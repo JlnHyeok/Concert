@@ -26,7 +26,4 @@ export class Reservation {
 
   @Column()
   createdAt: Date;
-
-  @VersionColumn()
-  version: number;
 }

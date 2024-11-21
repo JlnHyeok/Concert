@@ -28,16 +28,27 @@ export class ReservationService {
   ) {}
 
   async getReservation(userId: number) {
-    return this.dataSource.transaction(async (manager) => {
-      const reservations =
-        await this.reservationRepository.findByUserId(userId);
-      if (!reservations || reservations.length == 0) {
-        throw new BusinessException(
-          RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
-        );
-      }
-      return reservations;
-    });
+    const reservations = await this.reservationRepository.findByUserId(userId);
+    if (!reservations || reservations.length == 0) {
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
+      );
+    }
+    return reservations;
+  }
+
+  async getReservationByUserIdAndSeatId(userId: number, seatId: number) {
+    const reservation = await this.reservationRepository.findByUserIdAndSeatId(
+      userId,
+      seatId,
+    );
+    if (!reservation) {
+      throw new BusinessException(
+        RESERVATION_ERROR_CODES.RESERVATION_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return reservation;
   }
 
   async createReservation(userId: number, seatId: number) {

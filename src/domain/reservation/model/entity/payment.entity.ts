@@ -22,7 +22,4 @@ export class Payment {
 
   @Column('timestamp')
   createdAt: Date;
-
-  @VersionColumn()
-  version: number;
 }

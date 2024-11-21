@@ -15,4 +15,8 @@ export const COMMON_ERRORS = {
     code: 'COMMON_500',
     message: 'Internal server error.',
   },
+  EXTERNAL_PAYMENT_SERVICE_ERROR: {
+    code: 'COMMON_502',
+    message: 'External payment service error.',
+  },
 };

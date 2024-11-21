@@ -1,12 +1,7 @@
 import { Payment } from '../../../domain/reservation/model/entity/payment.entity';
-import {
-  EntityManager,
-  OptimisticLockVersionMismatchError,
-  Repository,
-} from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { IPaymentRepository } from '../../../domain/reservation/model/repository/payment.repository';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ConflictException } from '@nestjs/common';
 
 export class PaymentRepository implements IPaymentRepository {
   constructor(
