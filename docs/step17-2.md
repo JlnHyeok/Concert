@@ -202,10 +202,12 @@ async createPayment(
 #### 4.1 개요
 
 - 각 테스트 환경을 독립적으로 유지하기 위해, 매 테스트 마다 격리된 Container 를 실행시켜 테스트 코드를 실행하도록 구성.
+- 단위 테스트 : 각 service.spec.ts, facade.spec.ts
+- 통합 테스트 : 각 controller.spec.ts
 
 #### 4.2 테스트 환경
 
-- 테스트 실행 시 각각의 컨테이너 (Concert_Server, Kafka, Redis, PostgreSQL, Concert_Payment_Api_Server) 가 실행됩니다.
+- 테스트 실행 시 각각의 컨테이너 (Concert_Server 를 제외한 Kafka, Redis, PostgreSQL, Concert_Payment_Api_Server) 가 실행됩니다.
 
 ```plaintext
            +-------------+
@@ -233,15 +235,24 @@ async createPayment(
 npm run test:docker
 ```
 
-- 다음과 같이 Docker Image 가 빌드되고 실행됨.
+- 다음과 같이 Docker Image 가 빌드되고 실행되며 테스트 종료 후 Clear 됨.
+  1. Docker Image Build
   ![image](https://github.com/user-attachments/assets/d19c8a1a-f0da-4cf7-9333-dcbcde91af28)
+
+  2. Docker Run
   <img width="788" alt="image" src="https://github.com/user-attachments/assets/130b2ce6-abcc-4d47-9d7e-95b70dcbdf01">
+  
+  3. Docker Container & Image Clear
+  <img width="464" alt="image" src="https://github.com/user-attachments/assets/0dc08a16-201b-432d-9dd3-9054bf6cf387">
+
 
 #### 4.4 테스트 결과
 
-![image](https://github.com/user-attachments/assets/06f2863f-ff8d-47bf-94d1-785b0e5b4a1f)
+<img width="544" alt="image" src="https://github.com/user-attachments/assets/c9affcf7-eb54-4a9a-8820-67ad9f5d20b0">
+
 
 ### 5. 서비스 실행
+- 서비스 실행 시, 각각의 컨테이너 (Concert_Server, Kafka, Redis, PostgreSQL, Concert_Payment_Api_Server) 가 실행됩니다.
 - 아래 명령어로 실행.
 ```bash
 npm run start:docker
