@@ -287,6 +287,17 @@ docker run -d --restart always --name Concert_test_redis -p 6666:6379  --network
 docker run -d --restart always --name Concert_test_payment_api -p 4444:4000  --network kafka_test_network -e NODE_ENV=test concert_test_payment_api
 
 sleep 5
+
+# KAFKA TOPICS
+docker exec -it Kafka00ServiceTest \
+kafka-topics.sh --create \
+--topic payment.success \
+--bootstrap-server Kafka00ServiceTest:9092,Kafka01ServiceTest:9092,Kafka02ServiceTest:9092
+
+docker exec -it Kafka00ServiceTest \
+kafka-topics.sh --create \
+--topic payment.fail \
+--bootstrap-server Kafka00ServiceTest:9092,Kafka01ServiceTest:9092,Kafka02ServiceTest:9092
 ```
 
 ##### test.clear.sh
