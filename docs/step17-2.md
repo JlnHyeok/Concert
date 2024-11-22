@@ -195,6 +195,17 @@ async createPayment(
   }
 ```
 
+### 결제 요청 테스트
+- POSTMAN
+<img width="844" alt="image" src="https://github.com/user-attachments/assets/2d9dffcc-9a7f-4b7f-8b79-3df83ca7685c">
+
+- RESPONSE
+<img width="595" alt="image" src="https://github.com/user-attachments/assets/03054d77-4e5c-4699-b38f-b98e52bd3760">
+
+- PAYMENT OUTBOX TABLE
+<img width="1326" alt="image" src="https://github.com/user-attachments/assets/2c464cf5-4dac-4965-895e-9cdbd5e291c3">
+
+
 ---
 
 ### 4. 테스트 코드
