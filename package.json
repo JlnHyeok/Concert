@@ -9,6 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "start:docker": "NODE_ENV=production npm run build && bash ./docker/build-and-run.sh",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -22,8 +23,7 @@
     "migration:generate": "typeorm migration:generate -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:run": "typeorm migration:run -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:revert": "typeorm migration:revert -d src/infra/db/typeorm/typeorm.config.ts",
-    "typeorm": "typeorm",
-    "start:docker": "NODE_ENV=production npm run build && bash ./docker/build-and-run.sh"
+    "typeorm": "typeorm"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.3.0",
