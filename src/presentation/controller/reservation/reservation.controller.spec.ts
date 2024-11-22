@@ -8,7 +8,10 @@ import { DataSource } from 'typeorm';
 import { WaitingQueueService } from '../../../domain/waiting-queue/services/waiting-queue.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ValidationInterceptor } from '../../../common/interceptor/validation-interceptor';
-
+import { SET_KAFKA_OPTION } from '../../../common/constants/kafka';
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 describe('ReservationController (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
@@ -45,6 +48,10 @@ describe('ReservationController (e2e)', () => {
       }),
     );
     await app.init();
+    console.log('App Init');
+    app.connectMicroservice(SET_KAFKA_OPTION('localhost', '11111'));
+    console.log('Connecting Microservices Kafka');
+    await app.startAllMicroservices();
 
     waitingQueueService =
       moduleFixture.get<WaitingQueueService>(WaitingQueueService);
@@ -52,6 +59,7 @@ describe('ReservationController (e2e)', () => {
   });
 
   afterAll(async () => {
+    await waitingQueueService.deleteAll();
     await dataSource.manager.query(
       'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
     );
@@ -73,6 +81,8 @@ describe('ReservationController (e2e)', () => {
   });
 
   beforeEach(async () => {
+    await waitingQueueService.deleteAll();
+
     // 테스트용 유저 데이터 삽입
     for (let i = 0; i < 10; i++) {
       const requess = await request(app.getHttpServer())
@@ -118,7 +128,6 @@ describe('ReservationController (e2e)', () => {
   });
 
   afterEach(async () => {
-    await waitingQueueService.deleteAll();
     await dataSource.manager.query(
       'TRUNCATE TABLE "user" RESTART IDENTITY CASCADE',
     );
@@ -253,14 +262,17 @@ describe('ReservationController (e2e)', () => {
           seatId: Number(createdSeatRes.body.id),
         });
 
+      // 결제 처리 메시지 수신 대기 (비동기 처리)
+      await sleep(1000);
+
       let balance = await dataSource.manager.query(`
         SELECT * FROM "balance"`);
       let userBalance = balance.filter((b) => b.userId === 1)[0].balance;
       let paymentOutbox = await dataSource.manager.query(`
         SELECT * FROM "payment_outbox"`);
-
       expect(userBalance).toBe('90000');
       expect(paymentOutbox.length).toBe(1);
+      expect(paymentOutbox[0].status).toBe('SUCCESS');
     });
   });
 });
