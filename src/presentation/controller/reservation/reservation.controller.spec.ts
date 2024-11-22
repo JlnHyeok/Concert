@@ -66,7 +66,8 @@ describe('ReservationController (e2e)', () => {
       TRUNCATE TABLE "seat" RESTART IDENTITY CASCADE;`);
     await dataSource.manager.query(`
       TRUNCATE TABLE "reservation" RESTART IDENTITY CASCADE;`);
-
+    await dataSource.manager.query(`
+      TRUNCATE TABLE "payment_outbox" RESTART IDENTITY CASCADE;`);
     await dataSource.destroy();
     await app.close();
   });
@@ -215,13 +216,9 @@ describe('ReservationController (e2e)', () => {
       const reservation = await dataSource.manager.query(`
         SELECT * FROM "reservation"`);
 
-      // responses.forEach((response, index) => {
-      //   if (index == 0) {
-      //     expect(response.status).toBe(HttpStatus.CREATED); // 예약이 성공적으로 생성되어야 함
-      //   } else {
-      //     expect(response.status).toBe(`user${index + 1}`);
-      //   }
-      // });
+      expect(reservation.length).toBe(1);
+      expect(reservation[0].user_id).toBe(4);
+      expect(reservation[0].seat_id).toBe(1);
     });
   });
 
@@ -255,6 +252,15 @@ describe('ReservationController (e2e)', () => {
           userId: 1,
           seatId: Number(createdSeatRes.body.id),
         });
+
+      let balance = await dataSource.manager.query(`
+        SELECT * FROM "balance"`);
+      let userBalance = balance.filter((b) => b.userId === 1)[0].balance;
+      let paymentOutbox = await dataSource.manager.query(`
+        SELECT * FROM "payment_outbox"`);
+
+      expect(userBalance).toBe('90000');
+      expect(paymentOutbox.length).toBe(1);
     });
   });
 });
