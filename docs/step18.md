@@ -331,8 +331,7 @@ async retryFailedPublishPayment() {
             key: `payment_reservation_${event.metadata.reservationId}`,
             value: {
                 eventId: event.id,
-                metadata: event.metadata,
-            },
+                },
             })
             .pipe(timeout(5000));
         }
