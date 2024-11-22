@@ -329,7 +329,7 @@ advertised.listeners=${KAFKA_ADVERTISED_LISTENERS:-PLAINTEXT://localhost:9092}  
 # KRaft 모드에서는 필수입니다. `process.roles=broker`인 노드에서는 첫 번째 리스너만 브로커에서 사용됩니다.
 controller.listener.names=${KAFKA_CONTROLLER_LISTENER_NAMES:-CONTROLLER}  # 환경변수로 설정, 기본값 CONTROLLER
 
-# 리스너 이름을 보안 프로토콜에 매핑합니다. 기본값은 동일하게 설정됩니다. 더 자세한 내용은 구성 문서를 참조하세요.
+# 리스너 이름을 보안 프로토콜에 매핑합니다. 기본값은 동일하게 설정됩니다. 더 자세한 내용은 공식 문서를 참조하세요.
 listener.security.protocol.map=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:-CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL}  # 환경변수로 설정
 
 # 서버가 네트워크에서 요청을 수신하고 응답을 전송하는 데 사용하는 스레드 수
@@ -391,7 +391,7 @@ transaction.state.log.min.isr=${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR:-1}  # 환�
 # 로그 세그먼트 처분을 제어하는 설정입니다. 정책은 시간 경과 후 또는 특정 크기까지 로그가 축적된 후 세그먼트를 삭제하도록 설정할 수 있습니다.
 # 두 조건 중 하나라도 충족되면 세그먼트가 삭제됩니다. 삭제는 항상 로그의 끝에서 발생합니다.
 
-# 로그 파일이 삭제되기 전에 최소 연령
+# 로그 파일 보관 최소 시간
 log.retention.hours=${KAFKA_LOG_RETENTION_HOURS:-168}  # 환경변수로 설정, 기본값 168
 
 # 로그의 크기 기반 보존 정책. 세그먼트는 log.retention.bytes 미만으로 떨어지지 않으면 삭제됩니다.
@@ -401,7 +401,7 @@ log.retention.hours=${KAFKA_LOG_RETENTION_HOURS:-168}  # 환경변수로 설정,
 # 로그 세그먼트 파일의 최대 크기. 이 크기에 도달하면 새 로그 세그먼트가 생성됩니다.
 log.segment.bytes=${KAFKA_LOG_SEGMENT_BYTES:-1073741824}  # 환경변수로 설정, 기본값 1073741824
 
-# 로그 세그먼트가 보존 정책에 따라 삭제할 수 있는지 확인하는 간격
+# 로그 세그먼트가 보존 정책에 따라 삭제할 수 있는지 확인하는 인터벌
 log.retention.check.interval.ms=${KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS:-300000}  # 환경변수로 설정, 기본값 300000
 ```
 
