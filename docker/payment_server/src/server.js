@@ -5,9 +5,14 @@ const express = require('express');
 const app = express();
 const port = 4000;
 
+const nodeEnv = process.env.NODE_ENV;
+console.log('nodeEnv:', nodeEnv);
+const url =
+  nodeEnv == 'test' ? 'Kafka00ServiceTest:9092' : 'Kafka00Service:9092';
+
 const kafka = new Kafka({
   clientId: 'payment_server',
-  brokers: ['127.0.0.1:10000'],
+  brokers: [url],
 });
 
 const consumer = kafka.consumer({ groupId: 'payment-group' });
