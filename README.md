@@ -4,9 +4,9 @@
 
 ### [3. 발생 가능한 동시성 이슈 파악](https://github.com/JlnHyeok/Concert/blob/main/docs/step11.md)
 
-### [4. 성능 개선을 위한 Redis 기반의 캐싱 및 로직 이관 분석](https://github.com/JlnHyeok/Concert/edit/main/docs/step13.md)
+### [4. 성능 개선을 위한 Redis 기반의 캐싱 및 로직 이관 분석](https://github.com/JlnHyeok/Concert/blob/main/docs/step13.md)
 
-### [5. 대기열 시스템 로직 이관 및 설계](https://github.com/JlnHyeok/Concert/edit/main/docs/step14.md)
+### [5. 대기열 시스템 로직 이관 및 설계](https://github.com/JlnHyeok/Concert/blob/main/docs/step14.md)
 
 ### [6. Index 란?](https://github.com/JlnHyeok/Concert/blob/main/docs/step15-1.md)
 
