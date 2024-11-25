@@ -11,8 +11,8 @@ export const SET_KAFKA_OPTION: (url: string, port: string) => KafkaOptions = (
         clientId: 'my-kafka-client',
         brokers: [
           `${url}:${port}`,
-          `${url}:${Number(port) + 1}`,
-          `${url}:${Number(port) + 2}`,
+          // `${url}:${Number(port) + 1}`,
+          // `${url}:${Number(port) + 2}`,
         ],
         retry: {
           retries: 2,
