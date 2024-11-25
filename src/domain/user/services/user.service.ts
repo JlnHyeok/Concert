@@ -80,11 +80,15 @@ export class UserService {
     };
   }
 
-  async usePoint(userId: number, point: number): Promise<{ balance: number }> {
-    const manager = this.dataSource.createEntityManager();
+  async usePoint(
+    userId: number,
+    point: number,
+    manager?: EntityManager,
+  ): Promise<{ balance: number }> {
+    const entityManager = manager ?? this.dataSource;
     let afterBalance: number | null = null;
 
-    await manager.transaction(
+    await entityManager.transaction(
       async (transactionalEntityManager: EntityManager) => {
         const user = await this.userRepository.findByUserIdWithLock(
           userId,

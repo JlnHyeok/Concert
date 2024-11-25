@@ -4,13 +4,19 @@ import { Seat } from '../entity/seat.entity';
 export const SEAT_REPOSITORY = 'SEAT_REPOSITORY';
 
 export interface ISeatRepository {
-  findById(id: number): Promise<Seat | null>;
+  findById(id: number, manager?: EntityManager): Promise<Seat | null>;
   findAll(): Promise<Seat[]>;
   findByConcertAndDate(
     concertId: number,
     performanceDate: Date,
-    manager: EntityManager,
+    manager?: EntityManager,
   ): Promise<Seat[] | null>;
+  findByConcertAndDateAndSeatNumber(
+    concertId: number,
+    performanceDate: Date,
+    seatNumber: number,
+    manager: EntityManager,
+  ): Promise<Seat | null>;
   createSeat(seat: {
     concertId: number;
     performanceDate: Date;
@@ -24,4 +30,5 @@ export interface ISeatRepository {
   ): Promise<Seat>;
   deleteSeat(id: number): Promise<void>;
   deleteSeatByConcertId(concertId: number): Promise<void>;
+  seedSeats(): Promise<void>;
 }

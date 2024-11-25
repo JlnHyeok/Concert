@@ -39,4 +39,23 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
   async deletePerformanceDateByConcertId(id: number): Promise<void> {
     await this.performanceDateRepository.delete({ concertId: id });
   }
+
+  async seedPerformanceDates(): Promise<void> {
+    const performanceDates = [];
+    for (let i = 1; i <= 100_000; i++) {
+      for (let j = 0; j <= 30; j++) {
+        const performanceDate = new PerformanceDate();
+        performanceDate.concertId = i;
+        performanceDate.performanceDate = new Date(
+          new Date().setDate(new Date().getDate() + j),
+        );
+        performanceDates.push(performanceDate);
+      }
+
+      if (performanceDates.length > 3000) {
+        await this.performanceDateRepository.save(performanceDates);
+        performanceDates.length = 0;
+      }
+    }
+  }
 }

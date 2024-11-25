@@ -1,12 +1,7 @@
 import { Payment } from '../../../domain/reservation/model/entity/payment.entity';
-import {
-  EntityManager,
-  OptimisticLockVersionMismatchError,
-  Repository,
-} from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { IPaymentRepository } from '../../../domain/reservation/model/repository/payment.repository';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ConflictException } from '@nestjs/common';
 
 export class PaymentRepository implements IPaymentRepository {
   constructor(
@@ -24,8 +19,12 @@ export class PaymentRepository implements IPaymentRepository {
     reservationId: number,
     price: number,
     createdAt: Date,
+    manager?: EntityManager,
   ): Promise<Payment> {
-    return await this.paymentRepository
+    const entityManager = manager
+      ? manager.getRepository(Payment)
+      : this.paymentRepository;
+    return await entityManager
       .createQueryBuilder()
       .insert()
       .into(Payment)

@@ -195,17 +195,14 @@ describe('ReservationFacade', () => {
       jest.spyOn(userService, 'findUserById').mockResolvedValue(mockUser);
       jest.spyOn(userRepository, 'findById').mockResolvedValue(mockUser);
       jest.spyOn(concertService, 'getSeat').mockResolvedValue(mockSeat);
-      jest
-        .spyOn(reservationService, 'getReservation')
-        .mockResolvedValue([
-          {
-            id: 1,
-            seat: mockSeat,
-            user: mockUser,
-            createdAt: new Date(),
-            version: 1,
-          },
-        ]);
+      jest.spyOn(reservationService, 'getReservation').mockResolvedValue([
+        {
+          id: 1,
+          seat: mockSeat,
+          user: mockUser,
+          createdAt: new Date(),
+        },
+      ]);
       jest
         .spyOn(userService, 'usePoint')
         .mockRejectedValue(

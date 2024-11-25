@@ -27,4 +27,8 @@ export const CONCERT_ERROR_CODES = {
     code: 'CONCERT_006',
     message: 'Seat already exists.',
   },
+  SEAT_UNAVAILABLE: {
+    code: 'CONCERT_007',
+    message: 'Seat unavailable.',
+  },
 };

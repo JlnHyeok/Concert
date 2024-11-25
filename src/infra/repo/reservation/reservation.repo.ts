@@ -12,8 +12,11 @@ export class ReservationRepository implements IReservationRepository {
     @InjectRepository(Reservation)
     private readonly reservationRepository: Repository<Reservation>,
   ) {}
-  async findById(id: number): Promise<Reservation> {
-    return await this.reservationRepository.findOne({ where: { id } });
+  async findById(id: number, manager?: EntityManager): Promise<Reservation> {
+    const entityManager = manager
+      ? manager.getRepository(Reservation)
+      : this.reservationRepository;
+    return await entityManager.findOne({ where: { id } });
   }
 
   async findBySeatId(seatId: number): Promise<Reservation[]> {
@@ -26,6 +29,19 @@ export class ReservationRepository implements IReservationRepository {
   async findByUserId(userId: number): Promise<Reservation[]> {
     return await this.reservationRepository.find({
       relations: ['user', 'seat'],
+    });
+  }
+
+  async findByUserIdAndSeatId(
+    userId: number,
+    seatId: number,
+    manager?: EntityManager,
+  ): Promise<Reservation> {
+    const entityManager = manager
+      ? manager.getRepository(Reservation)
+      : this.reservationRepository;
+    return await entityManager.findOne({
+      where: { user: { id: userId }, seat: { id: seatId } },
     });
   }
 

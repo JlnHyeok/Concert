@@ -80,18 +80,45 @@ export class WaitingQueueService {
     return this.createToken(uuid);
   }
 
-  // 주기적으로 대기열 상태 업데이트
+  // 주기적으로 대기열 상태 업데이트 => expire_in 옵션이 있으므로 만료처리 필요 없음.
   @Cron('0 */3 * * * *')
   async updateTokenStatus() {
     const now = new Date();
     const processingKeys = await this.redisClient.zrange('waitingQueue', 0, -1);
-
+    if (processingKeys.length === 0) return;
     await this.removeExpiredProcessingKeys(processingKeys, now);
     const remainingSlots = await this.calculateRemainingSlots(processingKeys);
 
     if (remainingSlots > 0) {
       await this.activateWaitingKeys(remainingSlots, now);
     }
+  }
+
+  async deleteAll() {
+    await this.redisClient.flushall();
+  }
+
+  async checkTokenIsProcessing(token: string): Promise<boolean> {
+    const { uuid } = this.verifyToken(token);
+    const queueKey = `queue:${uuid}`;
+    const queueInfo = await this.getQueueInfo(queueKey);
+    if (queueInfo.status !== 'PROCESSING') {
+      throw new BusinessException(
+        WAITING_QUEUE_ERROR_CODES.TOKEN_EXPIRED,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    let expired = new Date(queueInfo.expireAt);
+    let parsedExpired = new Date(expired.setHours(expired.getHours() + 9));
+    if (parsedExpired.toISOString() < new Date().toISOString()) {
+      throw new BusinessException(
+        WAITING_QUEUE_ERROR_CODES.TOKEN_EXPIRED,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    return queueInfo.status === 'PROCESSING';
   }
 
   //#region private methods
@@ -112,7 +139,14 @@ export class WaitingQueueService {
       const expireAt = await this.redisClient.hget(key, 'expireAt');
       if (status === 'PROCESSING' && expireAt && new Date(expireAt) < now) {
         await this.redisClient.zrem('waitingQueue', key);
-        await this.redisClient.hdel(key, 'status', 'expireAt', 'activatedAt');
+        await this.redisClient.hdel(
+          key,
+          'status',
+          'expireAt',
+          'activatedAt',
+          'uuid',
+          'createdAt',
+        );
       }
     }
   }

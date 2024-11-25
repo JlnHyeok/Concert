@@ -1,12 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Index,
+} from 'typeorm';
 import { Concert } from './concert.entity';
 
 @Entity()
+// @Index(['concertId', 'performanceDate'])
 export class Seat {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
+  @Index()
   concertId: number;
 
   @Column()
