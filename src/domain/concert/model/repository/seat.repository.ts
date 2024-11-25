@@ -4,7 +4,7 @@ import { Seat } from '../entity/seat.entity';
 export const SEAT_REPOSITORY = 'SEAT_REPOSITORY';
 
 export interface ISeatRepository {
-  findById(id: number): Promise<Seat | null>;
+  findById(id: number, manager?: EntityManager): Promise<Seat | null>;
   findAll(): Promise<Seat[]>;
   findByConcertAndDate(
     concertId: number,

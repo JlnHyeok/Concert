@@ -177,8 +177,9 @@ export class ConcertService {
   async checkSeatStatusBySeatId(
     seatId: number,
     targetSeatStatus: 'AVAILABLE' | 'HOLD',
+    manager?: EntityManager,
   ): Promise<Seat> {
-    const seat = await this.seatRepository.findById(seatId);
+    const seat = await this.seatRepository.findById(seatId, manager);
     if (!seat) {
       throw new BusinessException(
         CONCERT_ERROR_CODES.SEAT_NOT_FOUND,

@@ -80,7 +80,7 @@ export class WaitingQueueService {
     return this.createToken(uuid);
   }
 
-  // 주기적으로 대기열 상태 업데이트
+  // 주기적으로 대기열 상태 업데이트 => expire_in 옵션이 있으므로 만료처리 필요 없음.
   @Cron('0 */3 * * * *')
   async updateTokenStatus() {
     const now = new Date();
@@ -139,7 +139,14 @@ export class WaitingQueueService {
       const expireAt = await this.redisClient.hget(key, 'expireAt');
       if (status === 'PROCESSING' && expireAt && new Date(expireAt) < now) {
         await this.redisClient.zrem('waitingQueue', key);
-        await this.redisClient.hdel(key, 'status', 'expireAt', 'activatedAt');
+        await this.redisClient.hdel(
+          key,
+          'status',
+          'expireAt',
+          'activatedAt',
+          'uuid',
+          'createdAt',
+        );
       }
     }
   }

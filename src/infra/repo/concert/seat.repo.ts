@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { ISeatRepository } from '../../../domain/concert/model/repository/seat.repository';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository, EntityManager, Between } from 'typeorm';
 import { Seat } from '../../../domain/concert/model/entity/seat.entity';
 
 export class SeatRepository implements ISeatRepository {
@@ -9,8 +9,9 @@ export class SeatRepository implements ISeatRepository {
     private readonly seatRepository: Repository<Seat>,
   ) {}
 
-  async findById(id: number): Promise<Seat> {
-    return await this.seatRepository.findOne({
+  async findById(id: number, manager?: EntityManager): Promise<Seat> {
+    const entity = manager ? manager.getRepository(Seat) : this.seatRepository;
+    return await entity.findOne({
       where: { id },
     });
   }
@@ -48,11 +49,15 @@ export class SeatRepository implements ISeatRepository {
     seatNumber: number,
     manager: EntityManager,
   ): Promise<Seat | null> {
+    const startOfDay = new Date(new Date(performanceDate).setHours(0, 0, 0, 0));
+    const endOfDay = new Date(
+      new Date(performanceDate).setHours(23, 59, 59, 999),
+    );
     return await manager.findOne(Seat, {
       where: {
         concertId,
-        performanceDate,
         seatNumber,
+        performanceDate: Between(startOfDay, endOfDay),
       },
       lock: { mode: 'pessimistic_write' },
     });

@@ -19,8 +19,12 @@ export class PaymentRepository implements IPaymentRepository {
     reservationId: number,
     price: number,
     createdAt: Date,
+    manager?: EntityManager,
   ): Promise<Payment> {
-    return await this.paymentRepository
+    const entityManager = manager
+      ? manager.getRepository(Payment)
+      : this.paymentRepository;
+    return await entityManager
       .createQueryBuilder()
       .insert()
       .into(Payment)
