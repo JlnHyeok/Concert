@@ -3,8 +3,9 @@ import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { winstonLogger, HttpExceptionFilter } from './common';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { KAFKA_OPTION } from './common/constants/kafka';
+import { MicroserviceOptions } from '@nestjs/microservices';
+import { SET_KAFKA_OPTION } from './common/constants/kafka';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,7 +14,14 @@ async function bootstrap() {
   });
 
   // Kafka 설정
-  app.connectMicroservice<MicroserviceOptions>(KAFKA_OPTION);
+  const configService = app.get(ConfigService);
+  const kafkaUrl = configService.get<string>('KAFKA_URL', 'localhost');
+  const kafkaPort = configService.get<string>('KAFKA_PORT', '9092');
+
+  app.connectMicroservice<MicroserviceOptions>(
+    SET_KAFKA_OPTION(kafkaUrl, kafkaPort),
+  );
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

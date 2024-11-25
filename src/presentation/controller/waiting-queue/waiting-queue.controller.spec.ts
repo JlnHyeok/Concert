@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../app.module';
-import { WaitingQueueFacade } from '../../../application/facades/waiting-queue/waiting-queue.facade';
 
 describe('WaitingQueueController (e2e)', () => {
   let app: INestApplication;
@@ -24,8 +23,6 @@ describe('WaitingQueueController (e2e)', () => {
   });
 
   afterAll(async () => {
-    // 테스트 데이터 정리
-
     await app.close();
   });
 

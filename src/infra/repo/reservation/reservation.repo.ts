@@ -40,8 +40,12 @@ export class ReservationRepository implements IReservationRepository {
     const entityManager = manager
       ? manager.getRepository(Reservation)
       : this.reservationRepository;
+
     return await entityManager.findOne({
-      where: { user: { id: userId }, seat: { id: seatId } },
+      where: {
+        user: { id: userId },
+        seat: { id: seatId },
+      },
     });
   }
 
@@ -70,8 +74,12 @@ export class ReservationRepository implements IReservationRepository {
     //   .then((result) => result.raw[0]);
   }
 
-  async deleteReservation(id: number): Promise<void> {
-    await this.reservationRepository.delete(id);
+  async deleteReservation(id: number, manager?: EntityManager): Promise<void> {
+    const entityManager = manager
+      ? manager.getRepository(Reservation)
+      : this.reservationRepository;
+
+    await entityManager.delete(id);
   }
 
   // 비관적 락을 사용한 메서드 추가

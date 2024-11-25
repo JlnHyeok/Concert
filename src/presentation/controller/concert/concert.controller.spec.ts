@@ -33,6 +33,7 @@ describe('ConcertController (e2e)', () => {
   });
 
   afterAll(async () => {
+    await dataSource.destroy();
     await app.close();
   });
 
@@ -69,7 +70,9 @@ describe('ConcertController (e2e)', () => {
 
   afterEach(async () => {
     // 테스트 데이터 정리
-    await request(app.getHttpServer()).delete(`/concert/delete/${concertId}`);
+    await request(app.getHttpServer())
+      .delete(`/concert/delete/${concertId}`)
+      .expect(200);
   });
 
   describe('/concert/schedule/:concertId (GET)', () => {

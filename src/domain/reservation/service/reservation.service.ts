@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  HttpStatus,
-  OnModuleInit,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Inject, Injectable, HttpStatus } from '@nestjs/common';
 import {
   IReservationRepository,
   RESERVATION_REPOSITORY,
@@ -13,19 +7,18 @@ import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
 } from '../model/repository/payment.repository';
-import { DataSource, EntityManager } from 'typeorm'; // EntityManager 추가
+import { EntityManager } from 'typeorm'; // EntityManager 추가
 import { BusinessException } from '../../../common/exception/business-exception';
 import { RESERVATION_ERROR_CODES } from '../error/reservation.error';
-import { ClientKafka, EventPattern } from '@nestjs/microservices';
 import {
-  IPaymentCreatedEventRepository,
-  PAYMENT_CREATED_EVENT_REPOSITORY,
-} from '../model/repository/payment.created.event.repository';
+  IPaymentOutboxRepository,
+  PAYMENT_OUTBOX_REPOSITORY,
+} from '../model/repository/payment.outbox.repository';
 import {
-  IPaymentCreatedEventMetadata,
-  PaymentCreatedEvent,
-  PaymentCreatedEventStatus,
-} from '../model/entity/payment.created.event.entity';
+  IPaymentOutboxMetadata,
+  PaymentOutbox,
+  PaymentOutboxStatus,
+} from '../model/entity/payment.outbox.entity';
 
 @Injectable()
 export class ReservationService {
@@ -34,9 +27,8 @@ export class ReservationService {
     private readonly reservationRepository: IReservationRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
-    @Inject(PAYMENT_CREATED_EVENT_REPOSITORY)
-    private readonly paymentCreatedEventRepository: IPaymentCreatedEventRepository,
-    private readonly dataSource: DataSource,
+    @Inject(PAYMENT_OUTBOX_REPOSITORY)
+    private readonly paymentOutboxRepository: IPaymentOutboxRepository,
   ) {}
 
   async getReservation(userId: number) {
@@ -57,6 +49,7 @@ export class ReservationService {
     const reservation = await this.reservationRepository.findByUserIdAndSeatId(
       userId,
       seatId,
+      manager,
     );
     if (!reservation) {
       throw new BusinessException(
@@ -65,6 +58,20 @@ export class ReservationService {
       );
     }
     return reservation;
+  }
+
+  async getAllPaymentOutboxsByStatus(
+    status: PaymentOutboxStatus,
+    manager?: EntityManager,
+  ): Promise<PaymentOutbox[]> {
+    return await this.paymentOutboxRepository.getAllPaymentOutboxsByStatus(
+      status,
+      manager,
+    );
+  }
+
+  async getPaymentOutboxById(id: number, manager?: EntityManager) {
+    return await this.paymentOutboxRepository.getPaymentOutboxById(id, manager);
   }
 
   async createReservation(userId: number, seat: { id: number; price: number }) {
@@ -118,45 +125,43 @@ export class ReservationService {
     return payment;
   }
 
-  async createPaymentCreatedEvent(
-    metadata: IPaymentCreatedEventMetadata,
+  async createPaymentOutbox(
+    metadata: IPaymentOutboxMetadata,
     manager?: EntityManager,
-  ): Promise<PaymentCreatedEvent> {
-    const paymentCreatedEvent =
-      await this.paymentCreatedEventRepository.createPaymentCreatedEvent(
-        metadata,
-        manager,
-      );
+  ): Promise<PaymentOutbox> {
+    const paymentOutbox =
+      await this.paymentOutboxRepository.createPaymentOutbox(metadata, manager);
 
-    return paymentCreatedEvent;
+    return paymentOutbox;
   }
 
-  async updatePaymentCreatedEvent(
+  async updatePaymentOutbox(
     id: number,
-    status: PaymentCreatedEventStatus,
+    status: PaymentOutboxStatus,
     manager?: EntityManager,
   ): Promise<void> {
-    const paymentCreatedEvent =
-      await this.paymentCreatedEventRepository.updatePaymentCreatedEvent(
+    const paymentOutbox =
+      await this.paymentOutboxRepository.updatePaymentOutbox(
         id,
         status,
         manager,
       );
 
-    return paymentCreatedEvent;
+    return paymentOutbox;
+  }
+  async deleteReservation(id: number, manager?: EntityManager) {
+    await this.reservationRepository.deleteReservation(id, manager);
   }
 
   async deleteReservationBySeatId(seatId: number) {
     return this.reservationRepository.deleteBySeatId(seatId);
   }
 
-  async updatePaymentCreatedEventStatus(
+  async updatePaymentOutboxStatus(
     id: number,
-    status: PaymentCreatedEventStatus,
+    status: PaymentOutboxStatus,
+    manager?: EntityManager,
   ) {
-    await this.paymentCreatedEventRepository.updatePaymentCreatedEvent(
-      id,
-      status,
-    );
+    await this.paymentOutboxRepository.updatePaymentOutbox(id, status, manager);
   }
 }

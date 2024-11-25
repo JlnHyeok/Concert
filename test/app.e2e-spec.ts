@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module'; // 경로에 맞게 수정
 import { HttpStatus } from '@nestjs/common';
+import { COMMON_ERRORS } from '../src/common';
 
 describe('App E2E Tests', () => {
   let app: INestApplication;
@@ -33,7 +34,7 @@ describe('App E2E Tests', () => {
           });
 
         expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
-        expect(response.body.message).toBe('Authorization header not found');
+        expect(response.body.message).toBe(COMMON_ERRORS.UNAUTHORIZED.message);
       });
 
       it('should return 400 Bad Request if required parameters are missing', async () => {
@@ -93,7 +94,7 @@ describe('App E2E Tests', () => {
           });
 
         expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
-        expect(response.body.message).toBe('Authorization header not found');
+        expect(response.body.message).toBe(COMMON_ERRORS.UNAUTHORIZED.message);
       });
 
       it('should return 400 Bad Request if required parameters are missing', async () => {

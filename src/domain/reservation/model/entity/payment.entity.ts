@@ -4,7 +4,6 @@ import {
   ManyToOne,
   JoinColumn,
   Column,
-  VersionColumn,
 } from 'typeorm';
 import { Reservation } from '../../../reservation/model/entity/reservation.entity';
 

@@ -9,11 +9,13 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
+    "start:docker": "NODE_ENV=production npm run build && bash ./docker/build-and-run.sh",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
+    "test:docker": "bash ./docker/test.setup.sh && NODE_ENV=test jest --forceExit && bash ./docker/test.clear.sh",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -21,8 +23,7 @@
     "migration:generate": "typeorm migration:generate -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:run": "typeorm migration:run -d src/infra/db/typeorm/typeorm.config.ts",
     "migration:revert": "typeorm migration:revert -d src/infra/db/typeorm/typeorm.config.ts",
-    "typeorm": "typeorm",
-    "start:docker": "npm run build && bash ./docker/build-and-run.sh"
+    "typeorm": "typeorm"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.3.0",
@@ -79,6 +80,7 @@
     "typescript": "^5.1.3"
   },
   "jest": {
+    "maxWorkers": 1,
     "moduleFileExtensions": [
       "js",
       "json",

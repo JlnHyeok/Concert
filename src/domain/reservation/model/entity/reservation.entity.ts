@@ -4,7 +4,6 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  VersionColumn,
   Unique,
 } from 'typeorm';
 import { User } from '../../../user/model/entity/user.entity';

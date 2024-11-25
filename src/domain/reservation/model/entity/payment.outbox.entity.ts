@@ -6,28 +6,28 @@ import {
 } from 'typeorm';
 
 @Entity()
-export class PaymentCreatedEvent {
+export class PaymentOutbox {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ type: 'jsonb' })
-  metadata: IPaymentCreatedEventMetadata;
+  metadata: IPaymentOutboxMetadata;
 
   @Column()
-  status: PaymentCreatedEventStatus;
+  status: PaymentOutboxStatus;
 
   @CreateDateColumn()
   createdAt: Date;
 }
 
-export enum PaymentCreatedEventStatus {
+export enum PaymentOutboxStatus {
   INIT = 'INIT',
   PUBLISHED = 'PUBLISHED',
   SUCCESS = 'SUCCESS',
   FAIL = 'FAIL',
 }
 
-export interface IPaymentCreatedEventMetadata {
+export interface IPaymentOutboxMetadata {
   userId: number;
   token: string;
   price: number;
