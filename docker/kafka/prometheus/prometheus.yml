@@ -32,7 +32,7 @@ scrape_configs:
     # scheme 기본값은 'http'.
 
     static_configs:
-      - targets: ['host.docker.internal:9323']
+      - targets: ['host.docker.internal:9323', 'CAdvisor:8080']
 
   # Kafka Exporter의 메트릭을 수집하는 설정
   - job_name: kafka-exporter
