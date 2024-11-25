@@ -42,8 +42,8 @@ export class PerformanceDateRepository implements IPerformanceDateRepository {
 
   async seedPerformanceDates(): Promise<void> {
     let performanceDates = [];
-    for (let i = 1; i <= 100; i++) {
-      for (let j = 0; j <= 10; j++) {
+    for (let i = 1; i <= 10; i++) {
+      for (let j = 0; j <= 6; j++) {
         const performanceDate = new PerformanceDate();
         performanceDate.concertId = i;
         performanceDate.performanceDate = new Date(

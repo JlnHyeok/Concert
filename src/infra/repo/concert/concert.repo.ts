@@ -15,10 +15,10 @@ export class ConcertRepository implements IConcertRepository {
   async seedConcerts(): Promise<void> {
     const concerts = [];
 
-    for (let i = 1; i <= 100; i++) {
+    for (let i = 1; i <= 10; i++) {
       const concert = new Concert();
       concert.name = `Concert ${i}`;
-      concert.location = `Location ${i % 100}`;
+      concert.location = `Location ${i % 10}`;
       concerts.push(concert);
 
       await this.concertRepository.save(concerts);

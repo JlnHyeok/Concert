@@ -112,9 +112,9 @@ export class SeatRepository implements ISeatRepository {
 
   async seedSeats(): Promise<void> {
     const seats = [];
-    for (let i = 1; i <= 100; i++) {
-      for (let j = 0; j <= 10; j++) {
-        for (let k = 1; k <= 200; k++) {
+    for (let i = 1; i <= 10; i++) {
+      for (let j = 0; j <= 6; j++) {
+        for (let k = 1; k <= 100; k++) {
           const seat = new Seat();
           seat.concertId = i;
           seat.performanceDate = new Date(
