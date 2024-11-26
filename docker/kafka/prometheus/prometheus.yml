@@ -47,3 +47,10 @@ scrape_configs:
 
     static_configs:
       - targets: ['JmxExporter:5556']
+
+  # StatsD Exporter의 메트릭을 수집하는 설정
+  - job_name: statsd-exporter
+    # metrics_path 기본값은 '/metrics'
+
+    static_configs:
+      - targets: ['StatsdExporter:9102']

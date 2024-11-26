@@ -255,6 +255,15 @@ services:
       - KAFKA_BROKERS=Kafka00Service:9092 #,Kafka01Service:9092,Kafka02Service:9092
       - LOG_LEVEL=INFO
 
+  statsd-exporter:
+    image: prom/statsd-exporter:latest
+    container_name: StatsdExporter
+    ports:
+      - '8125:9125/udp'
+      - '9102:9102'
+    networks:
+      - local_network
+
   prometheus:
     image: prom/prometheus:latest
     container_name: Prometheus
