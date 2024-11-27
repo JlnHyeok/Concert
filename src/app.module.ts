@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FacadeModule } from './application/facades/facade.module';
 import { DatabaseModule } from './infra/db/db.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ValidationInterceptor } from './common/interceptor/validation-interceptor';
 import { HttpExceptionFilter } from './common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -17,10 +17,22 @@ import { WaitingQueueController } from './presentation/controller/waiting-queue/
 import { RedisModule } from './infra/redis/redis.module';
 import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
 import { SET_KAFKA_OPTION } from './common/constants/kafka';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
+    HttpModule.register({
+      timeout: 100000,
+      maxRedirects: 60,
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 1000,
+        limit: 50000,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true, // 환경변수 모듈을 글로벌로 설정
       envFilePath: [
@@ -77,6 +89,7 @@ import { SET_KAFKA_OPTION } from './common/constants/kafka';
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 

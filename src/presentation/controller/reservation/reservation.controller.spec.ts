@@ -9,9 +9,11 @@ import { WaitingQueueService } from '../../../domain/waiting-queue/services/wait
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ValidationInterceptor } from '../../../common/interceptor/validation-interceptor';
 import { SET_KAFKA_OPTION } from '../../../common/constants/kafka';
-function sleep(ms) {
+
+function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 describe('ReservationController (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
