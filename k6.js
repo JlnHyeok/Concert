@@ -17,9 +17,12 @@ const checkTokenTrend = new Trend('checkToken');
 
 // 가상 사용자 수 및 테스트 지속 시간 설정
 export let options = {
-  // stages: [{ duration: '3m', target: 7000 }],
-  vus: 1000,
-  duration: '30s',
+  stages: [
+    { duration: '30s', target: 800 },
+    { duration: '1m', target: 1000 },
+  ],
+  // vus: 1000,
+  // duration: '30s',
 };
 
 export default function () {
