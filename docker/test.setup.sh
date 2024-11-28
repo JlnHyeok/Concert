@@ -15,6 +15,7 @@ docker run -d --restart always --name Concert_test_payment_api -p 4444:4000  --n
 sleep 5
 
 # KAFKA TOPICS
+
 # 브로커 설정
 BOOTSTRAP_SERVERS="Kafka00ServiceTest:9092,Kafka01ServiceTest:9092,Kafka02ServiceTest:9092"
 
@@ -44,3 +45,4 @@ TOPICS=("payment-success" "payment-fail")
 for topic in "${TOPICS[@]}"; do
   create_topic_if_not_exists $topic
 done
+
