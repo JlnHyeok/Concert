@@ -13,6 +13,7 @@ const endpoints = {
   paymentSeat: `${API_BASE_URL}/reservation/payment`,
 };
 
+// 메트릭 설정
 const checkTokenTrend = new Trend('checkToken');
 
 // 가상 사용자 수 및 테스트 지속 시간 설정
@@ -21,28 +22,23 @@ export let options = {
     { duration: '30s', target: 800 },
     { duration: '1m', target: 1000 },
   ],
-  // vus: 1000,
-  // duration: '30s',
 };
 
 export default function () {
-  // 대기열 토큰 발급 요청
-  sleep(Math.random() * 1);
+  // 1. 대기열 토큰 발급
   const token = issueToken();
 
-  // 토큰 발급 성공시 대기열 상태 조회
+  // 2. 토큰 발급 성공 시 대기열 상태 조회
   if (token) {
     checkQueueStatus(token);
   } else {
     console.error('Authorization token not found!');
   }
 
-  // 추가적인 API 호출은 여기에 구현 가능
-  // checkQueueSize();
-  // checkConcertInfo();
-
   sleep(5);
 }
+
+// 기능별로 분리된 함수들
 
 // 대기열 토큰 발급 함수
 function issueToken() {
@@ -54,11 +50,8 @@ function issueToken() {
 
   while (!token) {
     try {
-      sleep(Math.random() * 1);
       const res = http.post(endpoints.issueToken, undefined, issueTokenParams);
-      check(res, {
-        '대기열 요청 성공': (r) => r.status === 201,
-      });
+      check(res, { '대기열 요청 성공': (r) => r.status === 201 });
 
       const authHeader = res.headers['Authorization'];
       token = authHeader ? authHeader : null;
@@ -66,7 +59,7 @@ function issueToken() {
       console.log('ISSUE TOKEN ERROR');
     }
 
-    sleep(1); // 대기열 요청을 보낸 후 1초 대기
+    sleep(3); // 대기열 요청을 보낸 후 3초 대기
   }
 
   return token;
@@ -75,20 +68,15 @@ function issueToken() {
 // 대기열 상태 조회 함수
 function checkQueueStatus(token) {
   const checkParams = {
-    headers: {
-      authorization: token, // Bearer 토큰 추가
-    },
+    headers: { authorization: token },
     tags: { name: 'checkToken' },
   };
 
   let checkTokenRes;
-
   while (!checkTokenRes) {
     try {
       checkTokenRes = http.get(endpoints.checkToken, checkParams);
-      // console.log(checkTokenRes.body);
 
-      // 대기 넘버 추출
       const queueInfo = JSON.parse(checkTokenRes.body);
       const waitingNumber = queueInfo?.waitingNumber;
 
@@ -97,77 +85,79 @@ function checkQueueStatus(token) {
       }
 
       if (queueInfo?.status == 'PROCESSING') {
-        const reservationParams = {
-          headers: {
-            authorization: token, // Bearer 토큰 추가
-            'Content-Type': 'application/json',
-          },
-          tags: { name: 'reserveConcert' },
-        };
-
-        console.log('대기열 상태가 PRCESSING 으로 변경되었습니다.');
-
-        const concertId = Math.ceil(Math.random() * 10);
-        const userId = Math.ceil(Math.random() * 500);
-        const seatNumber = Math.ceil(Math.random() * 100);
-        const reservationRes = http.post(
-          endpoints.reserveConcert,
-          JSON.stringify({
-            userId,
-            concertId,
-            performanceDate: '2024-11-28',
-            seatNumber,
-          }),
-          reservationParams,
-        );
-
-        check(reservationRes, {
-          '예약 요청 성공': (r) => r.status === 201,
-        });
-
-        if (reservationRes.status == 201) {
-          const parsedJsonReservationBody = JSON.parse(reservationRes.body);
-
-          const paymentParams = {
-            headers: {
-              authorization: token, // Bearer 토큰 추가
-              'Content-Type': 'application/json',
-            },
-            tags: { name: 'paymentSeat' },
-          };
-
-          const paymentRes = http.post(
-            endpoints.paymentSeat,
-            JSON.stringify({
-              userId,
-              seatId: parsedJsonReservationBody.seat.id,
-            }),
-            paymentParams,
-          );
-          console.log('결제 요청을 보냈습니다.');
-
-          check(paymentRes, {
-            '결제 요청 성공': (r) => r.status === 201,
-          });
-        }
+        handleReservation(token);
       }
     } catch (error) {
       console.log('CHECK TOKEN ERROR', error);
     }
 
-    sleep(1); // 대기열 상태 조회 후 1초 대기
+    sleep(2);
   }
 
-  check(checkTokenRes, {
-    '대기열 상태 조회 성공': (r) => r.status === 200,
-  });
+  check(checkTokenRes, { '대기열 상태 조회 성공': (r) => r.status === 200 });
+}
+
+// 예약 처리 함수
+function handleReservation(token) {
+  console.log('대기열 상태가 PROCESSING 으로 변경되었습니다.');
+
+  const concertId = Math.ceil(Math.random() * 10);
+  const userId = Math.ceil(Math.random() * 500);
+  const seatNumber = Math.ceil(Math.random() * 100);
+
+  const reservationParams = {
+    headers: {
+      authorization: token,
+      'Content-Type': 'application/json',
+    },
+    tags: { name: 'reserveConcert' },
+  };
+
+  const reservationRes = http.post(
+    endpoints.reserveConcert,
+    JSON.stringify({
+      userId,
+      concertId,
+      performanceDate: '2024-11-28',
+      seatNumber,
+    }),
+    reservationParams,
+  );
+
+  check(reservationRes, { '예약 요청 성공': (r) => r.status === 201 });
+
+  if (reservationRes.status === 201) {
+    processPayment(reservationRes.body, token);
+  }
+}
+
+// 결제 처리 함수
+function processPayment(reservationBody, token) {
+  const parsedJsonReservationBody = JSON.parse(reservationBody);
+  const paymentParams = {
+    headers: {
+      authorization: token,
+      'Content-Type': 'application/json',
+    },
+    tags: { name: 'paymentSeat' },
+  };
+
+  const paymentRes = http.post(
+    endpoints.paymentSeat,
+    JSON.stringify({
+      userId: Math.ceil(Math.random() * 500),
+      seatId: parsedJsonReservationBody.seat.id,
+    }),
+    paymentParams,
+  );
+
+  console.log('결제 요청을 보냈습니다.');
+  check(paymentRes, { '결제 요청 성공': (r) => r.status === 201 });
 }
 
 // 테스트 종료 시 호출되는 함수
 export function teardown() {
   console.log('테스트 종료');
-  // 추가적인 정리 작업이 필요하면 여기에 구현
-
   http.post(endpoints.deleteToken, undefined, {
     tags: { name: 'deleteAllToken' },
   });
