@@ -14,4 +14,14 @@ export class WaitingQueueFacade {
   async issueToken() {
     return await this.waitingQueueService.generateToken();
   }
+
+  // ONLY FOR TESTING
+  async deleteAll() {
+    return await this.waitingQueueService.deleteAll();
+  }
+
+  // ONLY FOR TESTING
+  async getSize() {
+    return await this.waitingQueueService.getSizeOfProcessingStatus();
+  }
 }

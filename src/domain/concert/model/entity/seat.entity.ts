@@ -8,7 +8,7 @@ import {
 import { Concert } from './concert.entity';
 
 @Entity()
-// @Index(['concertId', 'performanceDate'])
+@Index(['concertId', 'performanceDate'])
 export class Seat {
   @PrimaryGeneratedColumn()
   id: number;

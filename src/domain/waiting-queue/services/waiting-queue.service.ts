@@ -106,6 +106,10 @@ export class WaitingQueueService {
     await this.redisClient.flushall();
   }
 
+  async getSizeOfProcessingStatus(): Promise<number> {
+    return this.QueueTokenService.getSizeOfProcessingStatus();
+  }
+
   async checkTokenIsProcessing(token: string): Promise<boolean> {
     const { uuid } = this.QueueTokenService.verifyToken(token);
     const queueKey = `queue:${uuid}`;

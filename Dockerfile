@@ -12,4 +12,4 @@ COPY ./dist /was/dist
 
 COPY ./.env.prod /was/.env.prod
 
-CMD ["node", "dist/main" ]
+CMD ["node","--max-old-space-size=4096", "dist/main" ]
