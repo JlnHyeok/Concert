@@ -21,3 +21,11 @@
 ### [11. Kafka 연동 및 실행 방법](https://github.com/JlnHyeok/Concert/blob/main/docs/step17-2.md)
 
 ### [12. Payment Event 에 대한 Outbox Pattern 도입](https://github.com/JlnHyeok/Concert/blob/main/docs/step18.md)
+
+### [13. Monitoring System 설계](https://github.com/JlnHyeok/Concert/blob/main/docs/step19-1.md)
+
+### [14. 테스트 시나리오 작성 및 실행](https://github.com/JlnHyeok/Concert/blob/main/docs/step19-2.md)
+
+### [15. 성능 개선 보고서](https://github.com/JlnHyeok/Concert/blob/main/docs/step20-1.md)
+
+### [16. 가상 장애 대응 보고서](https://github.com/JlnHyeok/Concert/blob/main/docs/step20-2.md)
