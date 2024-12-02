@@ -13,7 +13,7 @@ export class PerformanceDate {
   id: number;
 
   @Column()
-  // @Index()
+  @Index()
   concertId: number;
 
   @Column()

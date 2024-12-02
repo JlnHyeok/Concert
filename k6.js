@@ -1,47 +1,164 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { Trend } from 'k6/metrics';
 
-// 테스트를 위한 대기열 API 엔드포인트들
-const issueUrl = 'http://127.0.0.1:3000/waiting-queue/issue'; // 대기열에 요청을 추가하는 엔드포인트
-const checkUrl = 'http://127.0.0.1:3000/waiting-queue/check'; // 대기열 상태를 조회하는 엔드포인트
+// API 엔드포인트 설정
+const API_BASE_URL = 'http://127.0.0.1:3000';
 
-// 가상 사용자의 수와 테스트 지속 시간을 정의
+const endpoints = {
+  issueToken: `${API_BASE_URL}/waiting-queue/issue`,
+  checkToken: `${API_BASE_URL}/waiting-queue/check`,
+  deleteToken: `${API_BASE_URL}/waiting-queue/delete-all`,
+  reserveConcert: `${API_BASE_URL}/reservation/seat`,
+  paymentSeat: `${API_BASE_URL}/reservation/payment`,
+};
+
+// 메트릭 설정
+const checkTokenTrend = new Trend('checkToken');
+
+// 가상 사용자 수 및 테스트 지속 시간 설정
 export let options = {
-  vus: 100, // 동시 가상 사용자 수
-  duration: '30s', // 테스트 실행 시간
+  stages: [
+    { duration: '30s', target: 800 },
+    { duration: '1m', target: 1000 },
+  ],
 };
 
 export default function () {
-  // 대기열에 요청을 추가 (POST)
-  let params = { headers: { 'Content-Type': 'application/json' } };
-  let res = http.post(issueUrl, undefined, params);
+  // 1. 대기열 토큰 발급
+  const token = issueToken();
 
-  // 응답 상태 체크 (201번 응답만 성공)
-  check(res, {
-    '대기열 요청 성공': (r) => r.status === 201,
-  });
-
-  // 응답에서 Authorization 헤더에서 Bearer 토큰 추출
-  let authHeader = res.headers['Authorization'];
-  let token = authHeader ? authHeader : null; // 'Bearer <token>'에서 <token> 부분만 추출
-
-  // 토큰이 존재하면 GET 요청에 Authorization 헤더를 추가
+  // 2. 토큰 발급 성공 시 대기열 상태 조회
   if (token) {
-    let checkParams = {
-      headers: {
-        authorization: token, // Bearer 토큰 추가
-      },
-    };
-
-    // 대기열 상태를 조회 (GET)
-    res = http.get(checkUrl, checkParams);
-    check(res, {
-      '대기열 상태 조회 성공': (r) => r.status === 200,
-    });
+    checkQueueStatus(token);
   } else {
     console.error('Authorization token not found!');
   }
 
-  // 일정 시간 대기
-  sleep(1); // 1초 대기 후 반복
+  sleep(5);
+}
+
+// 기능별로 분리된 함수들
+
+// 대기열 토큰 발급 함수
+function issueToken() {
+  let token;
+  const issueTokenParams = {
+    headers: { 'Content-Type': 'application/json' },
+    tags: { name: 'issueToken' },
+  };
+
+  while (!token) {
+    try {
+      const res = http.post(endpoints.issueToken, undefined, issueTokenParams);
+      check(res, { '대기열 요청 성공': (r) => r.status === 201 });
+
+      const authHeader = res.headers['Authorization'];
+      token = authHeader ? authHeader : null;
+    } catch (error) {
+      console.log('ISSUE TOKEN ERROR');
+    }
+
+    sleep(3); // 대기열 요청을 보낸 후 3초 대기
+  }
+
+  return token;
+}
+
+// 대기열 상태 조회 함수
+function checkQueueStatus(token) {
+  const checkParams = {
+    headers: { authorization: token },
+    tags: { name: 'checkToken' },
+  };
+
+  let checkTokenRes;
+  while (!checkTokenRes) {
+    try {
+      checkTokenRes = http.get(endpoints.checkToken, checkParams);
+
+      const queueInfo = JSON.parse(checkTokenRes.body);
+      const waitingNumber = queueInfo?.waitingNumber;
+
+      if (waitingNumber) {
+        checkTokenTrend.add(waitingNumber, { status: 'waitingNumber' });
+      }
+
+      if (queueInfo?.status == 'PROCESSING') {
+        handleReservation(token);
+      }
+    } catch (error) {
+      console.log('CHECK TOKEN ERROR', error);
+    }
+
+    sleep(2);
+  }
+
+  check(checkTokenRes, { '대기열 상태 조회 성공': (r) => r.status === 200 });
+}
+
+// 예약 처리 함수
+function handleReservation(token) {
+  console.log('대기열 상태가 PROCESSING 으로 변경되었습니다.');
+
+  const concertId = Math.ceil(Math.random() * 10);
+  const userId = Math.ceil(Math.random() * 500);
+  const seatNumber = Math.ceil(Math.random() * 100);
+
+  const reservationParams = {
+    headers: {
+      authorization: token,
+      'Content-Type': 'application/json',
+    },
+    tags: { name: 'reserveConcert' },
+  };
+
+  const reservationRes = http.post(
+    endpoints.reserveConcert,
+    JSON.stringify({
+      userId,
+      concertId,
+      performanceDate: '2024-11-28',
+      seatNumber,
+    }),
+    reservationParams,
+  );
+
+  check(reservationRes, { '예약 요청 성공': (r) => r.status === 201 });
+
+  if (reservationRes.status === 201) {
+    processPayment(reservationRes.body, token);
+  }
+}
+
+// 결제 처리 함수
+function processPayment(reservationBody, token) {
+  const parsedJsonReservationBody = JSON.parse(reservationBody);
+  const paymentParams = {
+    headers: {
+      authorization: token,
+      'Content-Type': 'application/json',
+    },
+    tags: { name: 'paymentSeat' },
+  };
+
+  const paymentRes = http.post(
+    endpoints.paymentSeat,
+    JSON.stringify({
+      userId: Math.ceil(Math.random() * 500),
+      seatId: parsedJsonReservationBody.seat.id,
+    }),
+    paymentParams,
+  );
+
+  console.log('결제 요청을 보냈습니다.');
+  check(paymentRes, { '결제 요청 성공': (r) => r.status === 201 });
+}
+
+// 테스트 종료 시 호출되는 함수
+export function teardown() {
+  console.log('테스트 종료');
+  http.post(endpoints.deleteToken, undefined, {
+    tags: { name: 'deleteAllToken' },
+  });
 }

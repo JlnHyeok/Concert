@@ -14,7 +14,7 @@ export class Concert {
   id: number;
 
   @Column()
-  // @Index()
+  @Index()
   name: string;
 
   @Column()

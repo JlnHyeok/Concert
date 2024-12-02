@@ -162,4 +162,14 @@ export class QueueTokenService {
     }
     return { waitingNumber: Infinity, remainingTime: Infinity, status };
   }
+
+  // Queue Info 에서 Status 가 Processing 인 개수를 반환
+  async getSizeOfProcessingStatus(): Promise<number> {
+    const processingKeys = await this.redisClient.zrange('waitingQueue', 0, -1);
+    console.log(processingKeys.length);
+    return processingKeys.filter(
+      async (key) =>
+        (await this.redisClient.hget(key, 'status')) === 'PROCESSING',
+    ).length;
+  }
 }

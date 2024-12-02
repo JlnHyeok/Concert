@@ -45,4 +45,32 @@ export class WaitingQueueController {
       throw new InternalServerErrorException('Token generation failed');
     }
   }
+
+  // ONLY FOR TESTING
+  @Post('delete-all')
+  @ApiResponse({ status: 200, description: 'All tokens deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async deleteAll(@Res() res: Response) {
+    try {
+      await this.waitingQueueFacade.deleteAll();
+      res
+        .status(HttpStatus.OK)
+        .send({ message: 'All tokens deleted successfully' });
+    } catch (error) {
+      throw new InternalServerErrorException('Token deletion failed');
+    }
+  }
+
+  // ONLY FOR TESTING
+  @Get('size')
+  @ApiResponse({ status: 200, description: 'Get size of queue' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async getSize(@Res() res: Response) {
+    try {
+      const size = await this.waitingQueueFacade.getSize();
+      res.status(HttpStatus.OK).send({ size });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to get size of queue');
+    }
+  }
 }

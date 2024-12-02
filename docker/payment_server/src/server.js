@@ -32,7 +32,7 @@ const initKafka = async () => {
       try {
         console.log('결제 완료');
         await producer.send({
-          topic: 'payment.success',
+          topic: 'payment-success',
           messages: [
             {
               key: message.key,
@@ -46,7 +46,7 @@ const initKafka = async () => {
         });
       } catch (e) {
         await producer.send({
-          topic: 'payment.fail',
+          topic: 'payment-fail',
           messages: [
             {
               key: message.key,

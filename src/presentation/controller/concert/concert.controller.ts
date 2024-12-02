@@ -129,4 +129,28 @@ export class ConcertController {
   async deleteConcert(@Param('concertId') concertId: number): Promise<void> {
     return await this.ConcertFacade.deleteConcert(concertId);
   }
+
+  @Post('seed')
+  @ApiResponse({ status: 200, description: 'Concerts seeded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedConcerts(): Promise<void> {
+    return await this.ConcertFacade.seedConcerts();
+  }
+
+  @Post('schedule/seed')
+  @ApiResponse({
+    status: 200,
+    description: 'Performance dates seeded successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedPerformanceDates(): Promise<void> {
+    return await this.ConcertFacade.seedPerformanceDates();
+  }
+
+  @Post('seat/seed')
+  @ApiResponse({ status: 200, description: 'Seats seeded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async seedSeats(): Promise<void> {
+    return await this.ConcertFacade.seedSeats();
+  }
 }
